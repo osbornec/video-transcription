@@ -2,7 +2,7 @@
 
 **Transcribe video, audio, YouTube videos, and podcasts (Spotify, Apple Podcasts, YouTube Music) to speaker-diarized Markdown and Google Docs transcripts.**
 
-High-accuracy **video to text** and **audio to text** (speech-to-text) workflow for **Claude Code**, **OpenAI Codex**, **Cursor**, **Google Antigravity**, and standalone terminals across **macOS, Linux, and Windows**—using **zero external Python packages** for core transcription prep and publishing.
+Turns panels, webinars, interviews, and podcast episodes into speaker-attributed transcripts for Claude Code, Codex, Cursor, Google Antigravity, and standalone terminals on macOS, Linux, and Windows. Core scripts use the Python 3.10+ standard library only.
 
 ```bash
 npx skills add osbornec/video-transcription
@@ -12,7 +12,7 @@ npx skills add osbornec/video-transcription
 
 Once installed, prompt your agent naturally:
 
-- *"Create a YouTube transcript from `https://www.youtube.com/watch?v=...` with speaker diarization verified on screen, exported as Verbatim, Clean-Read, and Thematic Markdown."*
+- *"Create a YouTube transcript from `https://www.youtube.com/watch?v=...` with speaker names verified on screen, exported as Verbatim, Clean-Read, and Thematic Markdown."*
 - *"Transcribe this podcast from Spotify (`https://open.spotify.com/episode/...`) or Apple Podcasts (`https://podcasts.apple.com/...`) to Markdown with host and guest labels."*
 - *"Convert `./recordings/keynote_panel.mp4` video to text, extract enhanced `.wav` audio clips for every `[unclear]` timestamp, and generate a verified transcript."*
 - *"Compare `./draft_transcript.md` against `./recordings/interview.m4a`, resolve unclear technical terms, and publish a Thematic Clean-Read Google Doc with working Table of Contents links."*
@@ -21,57 +21,33 @@ Once installed, prompt your agent naturally:
 
 ## Standard Transcription vs. `video-transcription`
 
-| Challenge on Real-World Media | Standard Audio-Only / Single-Pass LLMs | `video-transcription` Pipeline |
+| Challenge on Real-World Media | Single-Pass Audio / Naive Shrink | `video-transcription` |
 | :--- | :--- | :--- |
-| **Speaker identification** | Guesses `Speaker 1` / `Speaker 2` from voice alone | Compacts video to `1 FPS` (`<=480px`) so agents read lower-thirds, speaker tiles, slides, and mic handoffs |
-| **Off-mic & rapid speech** | Re-encoding audio (`32k` AAC) smears consonants and triggers confident hallucinations | Keeps **lossless audio (`-c:a copy`)** and audits flagged windows from **100 Hz – 8 kHz PCM `.wav` clips** |
-| **Hour-long webinars (`60–120m`)** | Truncates or triggers silent LLM context compaction mid-file | Auto-splits media `>45 MB` or `>25 min` into `20m` keyframe segments and flushes each chunk to disk |
-| **Zoom / YouTube AAC stereo** | Splits fake mono tracks because `-65 dB` L/R codec noise looks non-zero | Uses a calibrated **`-45 dB` RMS phase threshold** (`--split-channels` only for true panned stereo) |
-| **Google Docs Table of Contents** | Imported `#slug` Markdown anchors break inside Google Docs | Binds every ToC entry to native Google Docs `headingId` (`#heading=h.xxx`) via `gdocs` CLI or REST |
-| **Non-Antigravity agents** | Blocked when Claude Code, Codex, or Cursor lack built-in video/audio readers | Includes [`transcribe_media.py`](./scripts/transcribe_media.py) (Gemini Files API) + pure-REST Google Docs fallback |
+| **Speaker identification** | Guesses `Speaker 1` / `Speaker 2` from voice alone | Scales video to `1 FPS` (`<=480px`, no upscale) so agents read lower-thirds, speaker tiles, slides, and mic handoffs (~85–90% fewer bytes) |
+| **Off-mic & rapid speech** | Re-encoding audio to `32k` AAC smears `s/t/k/p/f` consonants and triggers hallucinations | Keeps original audio (`-c:a copy`, or `128k` AAC for PCM/FLAC) and audits uncertain spans as **100 Hz to 8 kHz PCM `.wav` clips** |
+| **Hour-long webinars (60 to 120m)** | Truncates or hits silent context compaction mid-file | Splits media `>45 MB` or `>25 min` into 20-minute (`1200s`) keyframe chunks (`-g 10`) and flushes each chunk to disk |
+| **Zoom & YouTube AAC stereo** | Splits fake mono tracks because `-65 dB` L/R codec noise looks non-zero | Uses a calibrated `-45.0 dB` RMS phase threshold (`--split-channels` only for true panned stereo) |
+| **Google Docs Table of Contents** | Imported `#slug` Markdown anchors break in Google Docs | Rebinds every ToC link to its native Google Docs `headingId` (`#heading=h.xxx`) via `gdocs` CLI or Drive v3 / Docs v1 REST |
+| **Non-Antigravity agents** | Blocked when Claude Code, Codex, or Cursor lack built-in video/audio viewers | Bundles [`transcribe_media.py`](./scripts/transcribe_media.py) (Gemini Files API) and pure-REST Google Docs fallback |
 
 ---
 
-## Why This Pipeline Exists
-
-Standard audio-only transcription and naive video shrinking fail in four predictable ways on long panels, webinars, and interviews:
-
-1. **Aggressive audio downsampling causes confident hallucinations:** Re-encoding AAC/Opus speech down to `32k` AAC smears high-frequency consonants (`s`, `t`, `k`, `p`, `f`), causing models to invent plausible-sounding idioms instead of off-mic words.
-   - **Solution:** Keep **lossless audio bitstreams (`-c:a copy`)** (or `128k` AAC for PCM/FLAC) while cutting video bytes ~85–90% by scaling frames to `<=480px` at `1 FPS` (with a no-upscale guard for 240p/360p inputs). Visual frames remain sharp enough to read lower-thirds, active-speaker borders, and presentation slides.
-2. **Hour-long 1 FPS files still trigger silent context compaction:** Even a `~55–65 MB` hour-long 1 FPS `.mp4` that passes a 100 MB file-size check can overflow active token context once `.wav` audit clips are loaded.
-   - **Solution:** Auto-segment compact outputs larger than **`45 MB` or `25 minutes`** into **20-minute (`1200s`) keyframe-aligned chunks** (`-g 10`) and flush each chunk's verbatim Markdown to disk before loading the next segment.
-3. **Codec noise triggers false stereo splitting:** Conferencing tools and YouTube AAC encoders introduce ~`-65 dB` L/R quantization variance on dual-mono audio, fooling naive `RMS != -inf` checks into treating mono streams as stereo.
-   - **Solution:** Treat `RMS diff <= -45.0 dB` (or `-inf`) as dual-mono and reserve `--split-channels` (`_L.wav` / `_R.wav`) for true panned stereo recordings.
-4. **Markdown Table of Contents anchors break on Google Drive import, and non-Antigravity agents lack native video/audio viewers:**
-   - **Solution ([`fix_gdocs_toc_links.py`](./scripts/fix_gdocs_toc_links.py)):** Imports Markdown cleanly and rebinds every `#slug` link to its native Google Docs `headingId` (`#heading=h.xxx`) via either Antigravity's `gdocs` CLI or direct **Drive v3 + Docs v1 REST APIs**.
-   - **Solution ([`transcribe_media.py`](./scripts/transcribe_media.py)):** Lets Claude Code, Codex, and Cursor run the exact same joint visual + audio workflow via the Gemini Files API (`GEMINI_API_KEY`).
-
----
-
-## Pipeline Architecture
+## Pipeline Overview
 
 ```mermaid
 flowchart LR
-    S0["Stage 0: URL / YouTube Intake (Optional)"] --> S1["Stage 1: ffprobe + Stereo Topology Audit"]
-    S1 --> S2["Stage 2: 1 FPS + Lossless Audio Compaction"]
-    S2 --> S3["Stage 3: Chunked Visual Diarization + Disk Flush"]
+    S0["Stage 0: URL Intake (Optional)"] --> S1["Stage 1: ffprobe + Stereo Check"]
+    S1 --> S2["Stage 2: 1 FPS + Lossless Audio"]
+    S2 --> S3["Stage 3: Chunked Transcription + Disk Flush"]
     S3 --> S4["Stage 4: Band-Pass PCM .wav Audit"]
-    S4 --> S5["Stage 5: Markdown (.md) + Optional Google Docs"]
+    S4 --> S5["Stage 5: Markdown (.md) + Google Docs"]
 ```
 
 ---
 
-## Quick Installation
+## Manual Install & Setup
 
-### Option 1: Skills CLI (`npx skills`)
-Works with Claude Code, Cursor, Codex, and other [Agent Skills](https://skills.sh/) compatible agents:
-
-```bash
-# Install via Skills CLI
-npx skills add osbornec/video-transcription
-```
-
-### Option 2: Manual Install
+Use the `npx skills add osbornec/video-transcription` command above for automatic setup, or install manually into a specific agent folder:
 
 <details>
 <summary><strong>macOS &amp; Linux (bash / zsh)</strong></summary>
@@ -215,7 +191,7 @@ Uploads Markdown to Google Docs, resolves imported `headingId` targets, rebinds 
 | `--backend` | `auto` | `auto`, `gdocs` (Antigravity CLI), or `rest` (Google Drive v3 + Docs v1 REST APIs) |
 
 ```bash
-python3 scripts/fix_gdocs_toc_links.py --import-md "./out/Session_Thematic_Clean_Read_Transcript.md" --title "Session — Thematic Clean-Read" --shortcut-dir "./out" --shortcut-format auto
+python3 scripts/fix_gdocs_toc_links.py --import-md "./out/Session_Thematic_Clean_Read_Transcript.md" --title "Session: Thematic Clean-Read" --shortcut-dir "./out" --shortcut-format auto
 ```
 
 ### 5. [`scripts/build_changelog.py`](./scripts/build_changelog.py)
@@ -229,14 +205,14 @@ python3 scripts/build_changelog.py --old "./drafts/initial_draft.md" --new "./ou
 
 ## Deliverable Editions
 
-All deliverables use **Markdown (`.md`)** and optional **Google Docs**—never `.docx`. See [`examples/sample_outputs.md`](./examples/sample_outputs.md) for side-by-side excerpts and [`references/editorial-style-guide.md`](./references/editorial-style-guide.md) for formatting standards.
+All deliverables use Markdown (`.md`) and optional Google Docs, never `.docx`. See [`examples/sample_outputs.md`](./examples/sample_outputs.md) for side-by-side excerpts and [`references/editorial-style-guide.md`](./references/editorial-style-guide.md) for formatting standards.
 
 | Edition | Pattern | Best Use Case |
 | :--- | :--- | :--- |
-| **Verbatim Perfect** | `*_Perfect_Transcript.md` | Canonical spoken record preserving every false start, reaction, and honest VoIP packet-loss tag. |
-| **Clean-Read** | `*_Clean_Read_Transcript.md` | Publication/review copy with spoken fillers removed and 100% of facts, voice, and `[MM:SS]` timestamps intact. |
-| **Thematic Clean-Read** | `*_Thematic_Clean_Read_Transcript.md` | Executive-friendly navigation with clickable ToC links, chronological chapters, and 1-sentence takeaways. |
-| **Verification Changelog** | `Transcript_Corrections_Changelog.md` | Turn-by-turn audit table logging every resolved `[unclear]` span and speaker fix against an earlier draft. |
+| **Verbatim Perfect** | `*_Perfect_Transcript.md` | Full spoken record preserving every false start, reaction, and honest VoIP packet-loss tag. |
+| **Clean-Read** | `*_Clean_Read_Transcript.md` | Review copy with spoken fillers removed and all facts, voice, and `[MM:SS]` timestamps kept. |
+| **Thematic Clean-Read** | `*_Thematic_Clean_Read_Transcript.md` | Structured chapter headings with a clickable Table of Contents and one-sentence summaries. |
+| **Verification Changelog** | `Transcript_Corrections_Changelog.md` | Turn-by-turn table logging every resolved `[unclear]` span and speaker fix against an earlier draft. |
 
 ---
 
