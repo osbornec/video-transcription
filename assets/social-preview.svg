@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="osbornec/video-transcription social preview">
+  <rect width="1280" height="640" fill="#F5F2EB" />
+
+  <!-- Left column -->
+  <text x="64" y="80" fill="#625D55" font-family="'IBM Plex Sans', sans-serif" font-size="18" font-weight="600">osbornec / video-transcription</text>
+
+  <text x="64" y="172" fill="#111110" font-family="'IBM Plex Sans', sans-serif" font-size="40" font-weight="700">Transcribe videos &amp; podcasts</text>
+  <text x="64" y="230" fill="#111110" font-family="'Instrument Serif', Georgia, serif" font-style="italic" font-size="50">with real speaker names.</text>
+
+  <text x="64" y="304" fill="#3E3B35" font-family="'IBM Plex Sans', sans-serif" font-size="20">YouTube, Spotify, Apple Podcasts, and local recordings</text>
+  <text x="64" y="334" fill="#3E3B35" font-family="'IBM Plex Sans', sans-serif" font-size="20">turned into Markdown and Google Docs.</text>
+
+  <rect x="64" y="408" width="480" height="60" rx="6" fill="#111110" />
+  <text x="89" y="444" fill="#F5F2EB" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-size="17" font-weight="600">npx skills add osbornec/video-transcription</text>
+
+  <text x="64" y="514" fill="#625D55" font-family="'IBM Plex Sans', sans-serif" font-size="16">Works with Claude Code, Codex, Cursor, and Google Antigravity</text>
+
+  <!-- Right column: Before / After transcript comparison card -->
+  <rect x="724" y="68" width="492" height="504" rx="10" fill="#FFFFFF" stroke="#DAD4C8" stroke-width="1" />
+
+  <text x="756" y="114" fill="#625D55" font-family="'IBM Plex Sans', sans-serif" font-size="14" font-weight="600">Typical audio transcript</text>
+  <text x="756" y="156" fill="#545049" font-family="'IBM Plex Sans', sans-serif" font-size="18" font-weight="600">Speaker 1:</text>
+  <text x="756" y="190" fill="#545049" font-family="'IBM Plex Sans', sans-serif" font-size="18">"...we saw a jump in</text>
+  <rect x="928" y="168" width="98" height="29" rx="4" fill="#FBEEEC" />
+  <text x="934" y="189" fill="#C63824" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-size="16" font-weight="600">[unclear]</text>
+  <text x="756" y="222" fill="#545049" font-family="'IBM Plex Sans', sans-serif" font-size="18">right after the release shipped."</text>
+
+  <line x1="756" y1="272" x2="1184" y2="272" stroke="#E8E3D9" stroke-width="1" />
+
+  <text x="756" y="314" fill="#111110" font-family="'IBM Plex Sans', sans-serif" font-size="14" font-weight="600">With video-transcription</text>
+  <text x="756" y="354" fill="#625D55" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-size="15" font-weight="600">[04:12]</text>
+  <text x="826" y="354" fill="#111110" font-family="'IBM Plex Sans', sans-serif" font-size="18" font-weight="700">Host</text>
+  <text x="872" y="354" fill="#625D55" font-family="'IBM Plex Sans', sans-serif" font-size="16">(from title card):</text>
+
+  <text x="756" y="390" fill="#3E3B35" font-family="'IBM Plex Sans', sans-serif" font-size="18">"...we saw a jump in</text>
+  <rect x="926" y="368" width="152" height="30" rx="4" fill="#EDF5ED" />
+  <text x="931" y="390" fill="#14522E" font-family="'IBM Plex Sans', sans-serif" font-size="18" font-weight="700">checkout retries</text>
+  <text x="756" y="423" fill="#3E3B35" font-family="'IBM Plex Sans', sans-serif" font-size="18">right after the release shipped."</text>
+
+  <line x1="756" y1="470" x2="1184" y2="470" stroke="#E8E3D9" stroke-width="1" />
+  <text x="756" y="502" fill="#3E3B35" font-family="'IBM Plex Sans', sans-serif" font-size="15">Reads speaker names from slides and on-screen titles.</text>
+  <text x="756" y="528" fill="#3E3B35" font-family="'IBM Plex Sans', sans-serif" font-size="15">Re-checks unclear passages using isolated WAV clips.</text>
+</svg>
