@@ -2,11 +2,12 @@
 .SYNOPSIS
 Prepares an ingestion-ready compact media file while preserving audio fidelity.
 Supports video files (MP4, MOV, MKV, WebM), audio-only files (M4A, MP3, WAV, FLAC, OGG),
-diverse audio codecs (AAC, MP3, Opus, Vorbis, PCM), true-stereo vs. dual-mono detection,
-and automatic <90 MB segmentation for multi-hour recordings.
+common audio codecs (AAC, MP3, Opus, Vorbis, PCM), true-stereo vs. dual-mono detection,
+and automatic lossless segmentation for long recordings.
 
 .EXAMPLE
 .\prepare_compact_video.ps1 -InputPath "C:\path\Panel.mp4"
+.\prepare_compact_video.ps1 -Url "https://www.loom.com/share/..." -DownloadDir "C:\recordings" -OutputPath "C:\work\compact.mp4"
 .\prepare_compact_video.ps1 -InputPath "C:\path\Interview.wav"
 #>
 param(
@@ -16,6 +17,12 @@ param(
     [string]$Url,
 
     [string]$OutputPath,
+
+    [string]$DownloadDir,
+
+    [int]$ConcurrentFragments = 8,
+
+    [switch]$ScreenShare,
 
     [int]$Width = 480,
 
@@ -34,16 +41,26 @@ if (-not $InputPath -and -not $Url) {
     throw "Provide either -InputPath <file> or -Url <video_url>."
 }
 
+$EffectiveWidth = if ($ScreenShare) { [Math]::Max($Width, 960) } else { $Width }
+$EffectiveCrf = if ($ScreenShare) { [Math]::Min($Crf, 28) } else { $Crf }
+
 if ($Url -and -not $InputPath) {
-    $dlDir = if ($OutputPath) { Split-Path -Parent $OutputPath } else { (Get-Location).Path }
+    $dlDir = if ($DownloadDir) { $DownloadDir } elseif ($OutputPath) { Split-Path -Parent $OutputPath } else { (Get-Location).Path }
     if (-not $dlDir) { $dlDir = (Get-Location).Path }
     New-Item -ItemType Directory -Force -Path $dlDir | Out-Null
 
-    $outTemplate = Join-Path $dlDir "%(title).80B [%(id)s].%(ext)s"
+    $outTemplate = Join-Path $dlDir "%(title).80B_[%(id)s].%(ext)s"
+    $ytFmt = if ($EffectiveWidth -le 480) {
+        "bv*[height<=480]+ba[format_id!*=-drc]/b[height<=480]/bv*[height<=720]+ba[format_id!*=-drc]/b[height<=720]/bv*+ba[format_id!*=-drc]/b"
+    } else {
+        "bv*[height<=720]+ba[format_id!*=-drc]/b[height<=720]/bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/bv*+ba[format_id!*=-drc]/b"
+    }
+    $fragCount = [Math]::Max(1, $ConcurrentFragments)
     $ytExe = Get-Command "yt-dlp" -ErrorAction SilentlyContinue
     $ytBaseArgs = @(
-        "-f", "bv*[height<=480]+ba[format_id!*=-drc]/b[height<=480]/bv*+ba[format_id!*=-drc]/b",
+        "-f", $ytFmt,
         "--merge-output-format", "mp4",
+        "--concurrent-fragments", "$fragCount",
         "--write-info-json",
         "--restrict-filenames",
         "-o", $outTemplate,
@@ -51,7 +68,7 @@ if ($Url -and -not $InputPath) {
         $Url
     )
 
-    Write-Host "`nDownloading source video (non-DRC audio, height<=480, info.json)..." -ForegroundColor Cyan
+    Write-Host "`nDownloading source video (non-DRC audio, adaptive height, concurrent fragments=$fragCount, info.json)..." -ForegroundColor Cyan
     $prevEap = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     if ($ytExe) {
@@ -178,8 +195,8 @@ if (-not $hasVideo) {
     }
 
     $gopFrames = [Math]::Max(1, $Fps * 10)
-    Write-Host "`nCreating ${Fps} FPS video (max ${Width}px wide, no upscale, CRF $Crf, keyint ${gopFrames}) with $audioMode..." -ForegroundColor Cyan
-    & ffmpeg -y -i "$resolvedInput" -vf "scale=trunc(min($Width\,iw)/2)*2:-2,fps=${Fps}" -c:v libx264 -g $gopFrames -crf $Crf -preset veryfast @audioArgs "$OutputPath" -loglevel error
+    Write-Host "`nCreating ${Fps} FPS video (max ${EffectiveWidth}px wide, no upscale, CRF $EffectiveCrf, keyint ${gopFrames}) with $audioMode..." -ForegroundColor Cyan
+    & ffmpeg -y -i "$resolvedInput" -vf "scale=trunc(min($EffectiveWidth\,iw)/2)*2:-2,fps=${Fps}" -c:v libx264 -g $gopFrames -crf $EffectiveCrf -preset veryfast @audioArgs "$OutputPath" -loglevel error
     if ($LASTEXITCODE -ne 0) {
         throw "ffmpeg compaction failed with exit code $LASTEXITCODE"
     }

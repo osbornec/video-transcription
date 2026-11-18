@@ -26,6 +26,7 @@ import urllib.request
 from pathlib import Path
 
 API_BASE = "https://generativelanguage.googleapis.com"
+DEFAULT_MODEL = "gemini-4-neon"
 
 AUDIO_EXTENSIONS = {".m4a", ".aac", ".mp3", ".wav", ".flac", ".ogg", ".opus"}
 
@@ -67,15 +68,40 @@ def parse_offset_label(offset_str: str) -> str:
     return cleaned
 
 
+SAFE_INFO_JSON_KEYS = (
+    "title",
+    "fulltitle",
+    "channel",
+    "uploader",
+    "upload_date",
+    "duration",
+    "duration_string",
+    "description",
+    "chapters",
+    "webpage_url",
+)
+
+
 def load_context_text(context_arg: str) -> str:
-    """Load inline context or read context from '@filepath'."""
+    """Load inline context or read context from '@filepath', filtering yt-dlp .info.json payloads."""
     if not context_arg:
         return ""
     if context_arg.startswith("@"):
         ctx_path = Path(context_arg[1:]).expanduser()
         if not ctx_path.is_file():
             raise FileNotFoundError(f"Context file not found: {ctx_path}")
-        return ctx_path.read_text(encoding="utf-8", errors="replace").strip()
+        raw_text = ctx_path.read_text(encoding="utf-8", errors="replace").strip()
+        if ctx_path.suffix.lower() == ".json":
+            try:
+                data = json.loads(raw_text)
+            except json.JSONDecodeError:
+                return raw_text
+            if isinstance(data, dict) and any(
+                k in data for k in ("formats", "requested_downloads", "extractor", "webpage_url", "chapters")
+            ):
+                filtered = {k: data[k] for k in SAFE_INFO_JSON_KEYS if data.get(k) is not None}
+                return json.dumps(filtered, indent=2, ensure_ascii=False)
+        return raw_text
     return context_arg.strip()
 
 
@@ -245,7 +271,7 @@ def generate_multimodal(
     payload = {
         "system_instruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": parts}],
-        "generationConfig": {"temperature": 0.1},
+        "generationConfig": {"maxOutputTokens": 32768},
     }
     url = f"{API_BASE}/v1beta/models/{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(api_key)}"
     _, body = _http_request(
@@ -253,7 +279,7 @@ def generate_multimodal(
         method="POST",
         headers={"Content-Type": "application/json; charset=utf-8"},
         data=json.dumps(payload).encode("utf-8"),
-        timeout=600,
+        timeout=1200,
     )
     resp = json.loads(body.decode("utf-8"))
     candidates = resp.get("candidates", [])
@@ -263,7 +289,7 @@ def generate_multimodal(
     text_chunks = [
         p.get("text", "")
         for p in candidates[0].get("content", {}).get("parts", [])
-        if "text" in p
+        if "text" in p and not p.get("thought")
     ]
     return "\n".join(text_chunks).strip()
 
@@ -273,7 +299,7 @@ def resolve_api_key(cli_key: str) -> str:
     key = (cli_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     if not key:
         raise EnvironmentError(
-            "GEMINI_API_KEY is not set. Create a free/billed key in Google AI Studio and set "
+            "GEMINI_API_KEY is not set. Create a Gemini API key in Google AI Studio and set "
             "GEMINI_API_KEY (or pass --api-key)."
         )
     return key
@@ -298,7 +324,11 @@ def main() -> int:
         help="Optional context/chapter/draft text or '@path/to/context.txt'",
     )
     parser.add_argument("-o", "--output", default="", help="Write Markdown output directly to this file")
-    parser.add_argument("--model", default="gemini-2.5-pro", help="Gemini model ID (default: gemini-2.5-pro)")
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_MODEL,
+        help=f"Gemini model ID (default: {DEFAULT_MODEL})",
+    )
     parser.add_argument("--api-key", default="", help="Optional Gemini API key (defaults to GEMINI_API_KEY)")
     parser.add_argument(
         "--keep-remote",

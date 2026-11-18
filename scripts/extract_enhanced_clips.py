@@ -84,6 +84,16 @@ def extract_clip(ffmpeg_bin: str, resolved_input: Path, start: str, end: str, au
     print(f"Created: {out_file} ({start} -> {end})")
 
 
+def next_clip_start_index(out_dir: Path) -> int:
+    """Return next 1-based wNN_ clip index after any existing wNN_*.wav files in out_dir."""
+    existing = [
+        int(m.group(1))
+        for p in out_dir.glob("w*.wav")
+        if (m := re.match(r"^w(\d+)_", p.name))
+    ]
+    return max(existing, default=0) + 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Extract speech-enhanced uncompressed 16-bit PCM .wav clips for low-SNR verification."
@@ -146,7 +156,8 @@ def main() -> int:
             split_channels = False
 
     windows = parse_windows(args.windows)
-    for idx, (start, end) in enumerate(windows, start=1):
+    start_idx = next_clip_start_index(out_dir)
+    for idx, (start, end) in enumerate(windows, start=start_idx):
         tag_start = re.sub(r"[:.]", "", start)
         tag_end = re.sub(r"[:.]", "", end)
         stem = f"w{idx:02d}_{tag_start}_{tag_end}"

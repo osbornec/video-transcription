@@ -11,6 +11,10 @@ Desktop.ini
 # Environment / temporary files
 .env
 scratch/
+work/
+recordings/
+transcripts/
+out/
 tmp/
 *.tmp
 
@@ -27,3 +31,10 @@ tmp/
 *.info.json
 *.url
 *.webloc
+
+# Generated transcript deliverables and chunks (never publish local work)
+*_Perfect_Transcript.md
+*_Clean_Read_Transcript.md
+*_Thematic_Clean_Read_Transcript.md
+Transcript_Corrections_Changelog.md
+verbatim_chunk_*.md

@@ -97,6 +97,41 @@ class TestFixGDocsTocLinks(unittest.TestCase):
 
 
 class TestTranscribeMediaHelpers(unittest.TestCase):
+    def test_default_model_and_gemini4_payload(self) -> None:
+        self.assertEqual(transcribe_media.DEFAULT_MODEL, "gemini-4-neon")
+        captured: dict[str, object] = {}
+
+        def fake_http_request(url, method="GET", headers=None, data=None, timeout=120):
+            captured["url"] = url
+            captured["payload"] = data.decode("utf-8")
+            captured["timeout"] = timeout
+            response = (
+                '{"candidates":[{"content":{"parts":['
+                '{"text":"internal reasoning","thought":true},'
+                '{"text":"**[00:05] Host:** Hello world."}'
+                ']}}]}'
+            ).encode("utf-8")
+            return {}, response
+
+        orig_req = transcribe_media._http_request
+        try:
+            transcribe_media._http_request = fake_http_request
+            out = transcribe_media.generate_multimodal(
+                "test-key",
+                transcribe_media.DEFAULT_MODEL,
+                [{"mime_type": "video/mp4", "uri": "https://example.com/file"}],
+                "sys",
+                "user",
+            )
+        finally:
+            transcribe_media._http_request = orig_req
+
+        self.assertEqual(out, "**[00:05] Host:** Hello world.")
+        self.assertIn("/models/gemini-4-neon:generateContent", str(captured["url"]))
+        self.assertNotIn("temperature", str(captured["payload"]))
+        self.assertIn('"maxOutputTokens": 32768', str(captured["payload"]))
+        self.assertEqual(captured["timeout"], 1200)
+
     def test_mime_detection_and_offset(self) -> None:
         self.assertEqual(transcribe_media.detect_mime_type(Path("clip.mkv")), "video/x-matroska")
         self.assertEqual(transcribe_media.detect_mime_type(Path("clip.wav")), "audio/wav")
@@ -128,8 +163,33 @@ class TestTranscribeMediaHelpers(unittest.TestCase):
         self.assertIn("spoken introductions", usr_a)
         self.assertNotIn("lower-thirds", sys_a)
 
+        with tempfile.TemporaryDirectory() as tmpdir:
+            info_file = Path(tmpdir) / "loom.info.json"
+            info_file.write_text(
+                '{"title": "Demo", "uploader": "Alice", "chapters": [{"start_time": 0, "title": "Intro"}], '
+                '"formats": [{"url": "https://cdn.example.com/seg.m3u8"}], "cookies": "secret=1"}',
+                encoding="utf-8",
+            )
+            filtered = transcribe_media.load_context_text(f"@{info_file}")
+            self.assertIn('"title": "Demo"', filtered)
+            self.assertIn('"uploader": "Alice"', filtered)
+            self.assertIn('"chapters"', filtered)
+            self.assertNotIn('"formats"', filtered)
+            self.assertNotIn("secret=1", filtered)
+
 
 class TestPrepareCompactVideoPodcastHelpers(unittest.TestCase):
+    def test_video_format_includes_720p_fallback_before_unrestricted(self) -> None:
+        fmt = prepare_compact_video.build_video_format_selector(480)
+        self.assertIn("height<=480", fmt)
+        self.assertIn("height<=720", fmt)
+        self.assertLess(fmt.index("height<=720"), fmt.index("/bv*+ba"))
+
+        fmt_screen = prepare_compact_video.build_video_format_selector(960)
+        self.assertIn("height<=720", fmt_screen)
+        self.assertIn("height<=1080", fmt_screen)
+        self.assertLess(fmt_screen.index("height<=720"), fmt_screen.index("height<=1080"))
+
     def test_url_detectors_and_rss_parser(self) -> None:
         self.assertTrue(prepare_compact_video.is_spotify_episode_url("https://open.spotify.com/episode/685c45tl6MQyfDac6Qzmor"))
         self.assertFalse(prepare_compact_video.is_spotify_episode_url("https://open.spotify.com/show/1tgqafxZAB0Bjd8nkwVtE4"))
@@ -194,6 +254,14 @@ class TestExtractEnhancedClipsHelpers(unittest.TestCase):
             ],
         )
 
+    def test_next_clip_start_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            self.assertEqual(extract_enhanced_clips.next_clip_start_index(tmp), 1)
+            (tmp / "w01_000000_000025.wav").write_bytes(b"RIFF")
+            (tmp / "w04_000305_000325_L.wav").write_bytes(b"RIFF")
+            self.assertEqual(extract_enhanced_clips.next_clip_start_index(tmp), 5)
+
 
 class TestCliHelpAndRepoHygiene(unittest.TestCase):
     def test_cli_help_exit_zero(self) -> None:
@@ -232,6 +300,16 @@ class TestCliHelpAndRepoHygiene(unittest.TestCase):
                             pat.search(text),
                             msg=f"Disallowed personal path/ID matching {pat.pattern} found in {fpath}",
                         )
+
+    def test_no_em_or_en_dashes_in_docs(self) -> None:
+        for root, dirs, files in os.walk(REPO_ROOT):
+            dirs[:] = [d for d in dirs if d not in (".git", "__pycache__")]
+            for fname in files:
+                fpath = Path(root) / fname
+                if fpath.suffix in {".md", ".svg"}:
+                    text = fpath.read_text(encoding="utf-8", errors="ignore")
+                    self.assertNotIn("\u2014", text, msg=f"Em dash found in documentation file {fpath}")
+                    self.assertNotIn("\u2013", text, msg=f"En dash found in documentation file {fpath}")
 
 
 if __name__ == "__main__":

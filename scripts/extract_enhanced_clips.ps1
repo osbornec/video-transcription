@@ -51,7 +51,12 @@ function Invoke-ClipExtract([string]$Start, [string]$End, [string]$Filter, [stri
     Write-Host ("Created: {0} ({1} -> {2})" -f $OutFile, $Start, $End)
 }
 
-$idx = 1
+$existingIndices = @(
+    Get-ChildItem -LiteralPath $OutputDir -Filter "w*.wav" -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name -match '^w(\d+)_') { [int]$Matches[1] }
+    }
+)
+$idx = if ($existingIndices.Count -gt 0) { (($existingIndices | Measure-Object -Maximum).Maximum) + 1 } else { 1 }
 foreach ($win in $Windows) {
     $parts = $win.Split('-')
     if ($parts.Count -ne 2) {

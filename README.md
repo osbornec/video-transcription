@@ -1,8 +1,10 @@
 # `video-transcription`
 
-**Transcribe video, audio, YouTube videos, and podcasts (Spotify, Apple Podcasts, YouTube Music) to speaker-diarized Markdown and Google Docs transcripts.**
+**Turn any video, Loom, or podcast into verified, structured knowledge inside your AI agent.**
 
-Turns panels, webinars, interviews, and podcast episodes into speaker-attributed transcripts for Claude Code, Codex, Cursor, Google Antigravity, and standalone terminals on macOS, Linux, and Windows. Core scripts use the Python 3.10+ standard library only.
+Pairs Gemini 4's native video and audio understanding with a multi-pass verification workflow. YouTube talks, Looms, calls, and podcasts become speaker-attributed Markdown and linked Google Docs, ready for people to read and for agents to build from.
+
+Works with **Google Antigravity**, **Claude Code**, **OpenAI Codex**, **Cursor**, and standalone terminals on macOS, Linux, and Windows. Core scripts use the Python 3.10+ standard library only.
 
 ```bash
 npx skills add osbornec/video-transcription
@@ -12,23 +14,23 @@ npx skills add osbornec/video-transcription
 
 Once installed, prompt your agent naturally:
 
-- *"Create a YouTube transcript from `https://www.youtube.com/watch?v=...` with speaker names verified on screen, exported as Verbatim, Clean-Read, and Thematic Markdown."*
-- *"Transcribe this podcast from Spotify (`https://open.spotify.com/episode/...`) or Apple Podcasts (`https://podcasts.apple.com/...`) to Markdown with host and guest labels."*
-- *"Convert `./recordings/keynote_panel.mp4` video to text, extract enhanced `.wav` audio clips for every `[unclear]` timestamp, and generate a verified transcript."*
-- *"Compare `./draft_transcript.md` against `./recordings/interview.m4a`, resolve unclear technical terms, and publish a Thematic Clean-Read Google Doc with working Table of Contents links."*
+- *"Turn this Loom (`https://www.loom.com/share/...`) into Verbatim, Clean-Read, and Thematic Markdown with verified product and company spellings so we can draft a spec from it."*
+- *"Transcribe this customer discovery recording (`./recordings/customer_call.m4a`) into themed Markdown and publish a Google Doc with working Table of Contents links for the team."*
+- *"Transcribe this YouTube panel (`https://www.youtube.com/watch?v=...`) with real speaker names verified on screen and export structured chapters to Markdown."*
+- *"Transcribe this podcast from Spotify (`https://open.spotify.com/episode/...`) or Apple Podcasts (`https://podcasts.apple.com/...`) with host and guest labels."*
 
 ---
 
-## Standard Transcription vs. `video-transcription`
+## Why Builders Switch from Auto-Captions & AI Web Chats
 
-| Challenge on Real-World Media | Single-Pass Audio / Naive Shrink | `video-transcription` |
+| Challenge on Real-World Media | Auto-Captions & AI Web Chats | `video-transcription` |
 | :--- | :--- | :--- |
-| **Speaker identification** | Guesses `Speaker 1` / `Speaker 2` from voice alone | Scales video to `1 FPS` (`<=480px`, no upscale) so agents read lower-thirds, speaker tiles, slides, and mic handoffs (~85–90% fewer bytes) |
-| **Off-mic & rapid speech** | Re-encoding audio to `32k` AAC smears `s/t/k/p/f` consonants and triggers hallucinations | Keeps original audio (`-c:a copy`, or `128k` AAC for PCM/FLAC) and audits uncertain spans as **100 Hz to 8 kHz PCM `.wav` clips** |
-| **Hour-long webinars (60 to 120m)** | Truncates or hits silent context compaction mid-file | Splits media `>45 MB` or `>25 min` into 20-minute (`1200s`) keyframe chunks (`-g 10`) and flushes each chunk to disk |
-| **Zoom & YouTube AAC stereo** | Splits fake mono tracks because `-65 dB` L/R codec noise looks non-zero | Uses a calibrated `-45.0 dB` RMS phase threshold (`--split-channels` only for true panned stereo) |
-| **Google Docs Table of Contents** | Imported `#slug` Markdown anchors break in Google Docs | Rebinds every ToC link to its native Google Docs `headingId` (`#heading=h.xxx`) via `gdocs` CLI or Drive v3 / Docs v1 REST |
-| **Non-Antigravity agents** | Blocked when Claude Code, Codex, or Cursor lack built-in video/audio viewers | Bundles [`transcribe_media.py`](./scripts/transcribe_media.py) (Gemini Files API) and pure-REST Google Docs fallback |
+| **Reusable team & agent assets** | Browser chats (NotebookLM, Gemini, ChatGPT) trap summaries inside a one-person tab | Writes structured, agent-readable Markdown and linked Google Docs into your workspace so the whole team and their agents can discover them immediately |
+| **High-signal themes & structure** | Raw walls of text or generic summaries that lose verbatim evidence | Pairs verified transcripts with clear themes and chapter summaries so downstream agents start from clean signal |
+| **Real speaker names** | Guesses `Speaker 1` and `Speaker 2` from voice alone | Reads speaker tiles, lower-thirds, slides, and spoken introductions so every quote carries the right name |
+| **Proper nouns, numbers & fast speech** | Silently invents names and smears fast technical terms | Keeps original speech audio intact and re-checks unclear passages against isolated clips, marking true dropouts honestly |
+| **Hour-long calls & crosstalk** | Drops the second half when context fills up, or blurs overlapping voices | Saves long recordings to disk in sequential chunks and separates true multi-mic stereo channels automatically |
+| **Coding agents & Google Docs** | Pasted Markdown breaks Google Docs links, and most coding agents lack media viewers | Rebinds native Google Docs heading links, runs natively in Antigravity, and ships a zero-dependency Gemini 4 runner for Claude Code, Codex, Cursor, and CLI |
 
 ---
 
@@ -36,18 +38,27 @@ Once installed, prompt your agent naturally:
 
 ```mermaid
 flowchart LR
-    S0["Stage 0: URL Intake (Optional)"] --> S1["Stage 1: ffprobe + Stereo Check"]
-    S1 --> S2["Stage 2: 1 FPS + Lossless Audio"]
-    S2 --> S3["Stage 3: Chunked Transcription + Disk Flush"]
-    S3 --> S4["Stage 4: Band-Pass PCM .wav Audit"]
+    S0["Stage 0: URL Intake (Optional)"] --> S1["Stage 1: Audio & Stereo Check"]
+    S1 --> S2["Stage 2: Compact Video + Lossless Audio"]
+    S2 --> S3["Stage 3: Chunked Multimodal Pass 1"]
+    S3 --> S4["Stage 4: Isolated Audio Verification"]
     S4 --> S5["Stage 5: Markdown (.md) + Google Docs"]
 ```
+
+## How It Works Under the Hood
+
+Every stage is built to preserve spoken accuracy while keeping media small enough for AI agents to inspect reliably:
+
+- **Visual-first compaction without audio loss:** Scales video down to `1 FPS` (`<=480px`, or `>=960px` / `CRF <=28` with `--screen-share` for dense UI demos) while copying original speech audio bit-for-bit (`-c:a copy`, or `128k` AAC for PCM/FLAC). That cuts file size by 85 to 97% (for example, `410.12 MB` down to `9.74 MB` on a 14-minute `1080p` Loom) without smearing `s`, `t`, `k`, `p`, or `f` consonants.
+- **Gemini 4 multimodal Pass 1 + disk persistence:** In Google Antigravity, the agent reads chunks natively with `read_file` using your selected Gemini 4 model. Outside Antigravity, [`transcribe_media.py`](./scripts/transcribe_media.py) uploads chunks to the Gemini Files API using Gemini 4 (`--model`, default `gemini-4-neon`). Recordings over `45 MB` or `25 min` split into 20-minute (`1200s`) keyframe-aligned chunks (`-g 10`) flushed to disk after each pass.
+- **Targeted `100 Hz to 8 kHz` PCM `.wav` Pass 2 audit:** Every `[unclear]` window is extracted from the **original source media** as a band-pass filtered 16-bit PCM `.wav` clip with `dynaudnorm`. Two-channel streams pass a `-45.0 dB` RMS phase check so `--split-channels` runs only on true panned stereo, avoiding `-65 dB` Zoom/YouTube AAC dither false positives.
+- **Native Google Docs anchor binding:** [`fix_gdocs_toc_links.py`](./scripts/fix_gdocs_toc_links.py) imports Markdown via the `gdocs` CLI or Google Drive v3 / Docs v1 REST APIs and rebinds every `#slug` TOC anchor to its live Google Docs `headingId` (`#heading=h.xxx`).
 
 ---
 
 ## Manual Install & Setup
 
-Use the `npx skills add osbornec/video-transcription` command above for automatic setup, or install manually into a specific agent folder:
+Use `npx skills add osbornec/video-transcription` above for automatic setup, or install manually into a specific agent folder:
 
 <details>
 <summary><strong>macOS &amp; Linux (bash / zsh)</strong></summary>
@@ -99,10 +110,15 @@ Copy-Item -Recurse -Force ".\SKILL.md", ".\scripts", ".\references" "C:\path\to\
 
 All Python scripts run on **Python 3.10+ standard library only** (`pip install` is not required for core execution).
 
-| Agent / Runtime | Stages 3–4 (Audio + Visual Pass) | Stage 5 Google Docs Publishing *(Optional)* | Stage 5 Markdown Output |
+| Agent / Runtime | Stages 3 to 4 (Audio + Visual Pass) | Stage 5 Google Docs Publishing *(Optional)* | Stage 5 Markdown Output |
 | :--- | :--- | :--- | :--- |
-| **Google Antigravity** | Native `read_file` *(no API key needed)* | Built-in `gdocs` CLI *(zero setup)* | Always included (`.md` only, no `.docx`) |
-| **Claude Code / Codex / Cursor / CLI** | [`transcribe_media.py`](./scripts/transcribe_media.py) + `GEMINI_API_KEY` | [`fix_gdocs_toc_links.py`](./scripts/fix_gdocs_toc_links.py) via `gcloud auth` or `GOOGLE_ACCESS_TOKEN` | Always included (zero cloud auth needed) |
+| **Google Antigravity** | Native `read_file` with a Gemini 4 model *(no API key needed)* | Built-in `gdocs` CLI *(zero setup)* | Always included (`.md` only, no `.docx`) |
+| **Claude Code / Codex / Cursor / CLI** | [`transcribe_media.py`](./scripts/transcribe_media.py) + `GEMINI_API_KEY` *(defaults to `gemini-4-neon`)* | [`fix_gdocs_toc_links.py`](./scripts/fix_gdocs_toc_links.py) via `gcloud auth` or `GOOGLE_ACCESS_TOKEN` | Always included (zero cloud auth needed) |
+
+### Recommended Models
+
+- **In Google Antigravity:** Select a **Gemini 4** multimodal model in your Antigravity model picker so `read_file` can inspect `.mp4` video frames and `.wav` audio clips natively.
+- **Outside Antigravity (`transcribe_media.py`):** Defaults to `gemini-4-neon`; pass `--model <id>` to switch to any other Gemini 4 model ID.
 
 ### System Binaries
 
@@ -111,7 +127,7 @@ All Python scripts run on **Python 3.10+ standard library only** (`pip install` 
 | **Python 3.10+** | Running all helper scripts | `brew install python` | `winget install Python.Python.3.12` | `sudo apt install python3` |
 | **`ffmpeg` + `ffprobe`** | Compaction & PCM `.wav` extraction | `brew install ffmpeg` | `winget install Gyan.FFmpeg` | `sudo apt install ffmpeg` |
 | **`yt-dlp`** *(optional)* | Stage 0 `--url` downloads | `brew install yt-dlp` | `winget install yt-dlp.yt-dlp` | `pip install -U yt-dlp` |
-| **`GEMINI_API_KEY`** *(outside Antigravity)* | Joint video/audio Gemini API pass | Export from [Google AI Studio](https://aistudio.google.com/) | `$env:GEMINI_API_KEY = "..."` | Export in shell profile |
+| **`GEMINI_API_KEY`** *(outside Antigravity)* | Joint video/audio Gemini 4 API pass | Export from [Google AI Studio](https://aistudio.google.com/) | `$env:GEMINI_API_KEY = "..."` | Export in shell profile |
 | **`gcloud` CLI** *(optional outside Antigravity)* | Exporting to Google Docs via REST | `brew install --cask google-cloud-sdk` | `winget install Google.CloudSDK` | `apt install google-cloud-cli` |
 | **`python-docx`** *(optional)* | Comparing an old `.docx` draft in `build_changelog.py` | `pip install python-docx` | `pip install python-docx` | `pip install python-docx` |
 
@@ -122,14 +138,17 @@ All Python scripts run on **Python 3.10+ standard library only** (`pip install` 
 *(Use `python3` on macOS/Linux or `python` on Windows.)*
 
 ### 1. [`scripts/prepare_compact_video.py`](./scripts/prepare_compact_video.py)
-Downloads optional URL sources (YouTube, YouTube Music, Apple Podcasts, Spotify episode URLs via public RSS, + `.info.json`), audits stereo phase difference, compacts video without upscaling, preserves lossless/128k audio, and splits long outputs into compaction-safe chunks.
+Downloads optional URL sources (YouTube, YouTube Music, Loom, Apple Podcasts, Spotify episode URLs via public RSS, + `.info.json`), audits stereo phase difference, compacts video without upscaling (with `<=720p` download fallback, concurrent HLS fragment fetching, and `--screen-share` support), preserves lossless/128k audio, and splits long outputs into compaction-safe chunks.
 
 | Flag | Default | Description |
 | :--- | :--- | :--- |
 | `-i`, `--input-path` | `""` | Local source media path (`.mp4`, `.mov`, `.mkv`, `.webm`, `.m4a`, `.mp3`, `.wav`, `.flac`) |
-| `-u`, `--url` | `""` | Online video or podcast URL (YouTube, YouTube Music, Apple Podcasts, Spotify episode) |
+| `-u`, `--url` | `""` | Online video or podcast URL (YouTube, YouTube Music, Loom, Apple Podcasts, Spotify episode) |
 | `-o`, `--output-path` | `<stem>_compact_1fps.*` | Target compact media path |
+| `--download-dir` | parent of `--output-path` | Directory for raw `--url` downloads and `.info.json` metadata |
+| `--concurrent-fragments` | `8` | Concurrent HLS/DASH fragment connections for `yt-dlp` |
 | `--audio-only` | `false` | Download/extract audio only without video frames (podcasts & YouTube Music) |
+| `--screen-share` | `false` | Screen-share / slide preset (`>=960px` max width, `<=28` CRF for legible UI text) |
 | `--width` | `480` | Max width in pixels (never upscales smaller inputs; keeps even width/height) |
 | `--fps` | `1` | Compact frame rate for visual speaker diarization |
 | `--crf` | `35` | x264 CRF quality factor |
@@ -140,6 +159,7 @@ Downloads optional URL sources (YouTube, YouTube Music, Apple Podcasts, Spotify 
 ```bash
 python3 scripts/prepare_compact_video.py --input-path "./recordings/panel_session.mp4"
 python3 scripts/prepare_compact_video.py --url "https://www.youtube.com/watch?v=VIDEO_ID" -o "./work/session_compact_1fps.mp4"
+python3 scripts/prepare_compact_video.py --url "https://www.loom.com/share/VIDEO_ID" --download-dir "./recordings" -o "./work/loom_compact_1fps.mp4"
 python3 scripts/prepare_compact_video.py --url "https://podcasts.apple.com/us/podcast/.../id123?i=456"
 python3 scripts/prepare_compact_video.py --url "https://open.spotify.com/episode/EPISODE_ID"
 python3 scripts/prepare_compact_video.py --url "https://music.youtube.com/watch?v=VIDEO_ID" --audio-only
@@ -155,7 +175,7 @@ Uploads compact video segments, audio podcast tracks, or enhanced `.wav` clips t
 | `--offset` | `00:00` | Base timestamp offset (`MM:SS` or `HH:MM:SS`) added to segment timestamps |
 | `--context` | `""` | Inline notes or `@path/to/context.json` for speaker spellings and chapter markers |
 | `-o`, `--output` | stdout | Destination Markdown path (flushed directly to disk) |
-| `--model` | `gemini-2.5-pro` | Gemini model ID |
+| `--model` | `gemini-4-neon` | Gemini model ID (override with any Gemini 4 model ID) |
 | `--keep-remote` | `false` | Retain remote file on Gemini Files API instead of deleting after completion |
 
 ```bash
@@ -164,7 +184,7 @@ python3 scripts/transcribe_media.py -m audit-wav -i "./scratch/w01_000410_000435
 ```
 
 ### 3. [`scripts/extract_enhanced_clips.py`](./scripts/extract_enhanced_clips.py)
-Extracts targeted windows from the **original source media** as uncompressed 16-bit PCM `.wav` clips filtered to human speech frequencies (`100 Hz – 8 kHz`) with `dynaudnorm`.
+Extracts targeted windows from the **original source media** as uncompressed 16-bit PCM `.wav` clips filtered to human speech frequencies (`100 Hz to 8 kHz`) with `dynaudnorm`.
 
 | Flag | Default | Description |
 | :--- | :--- | :--- |
@@ -229,7 +249,7 @@ video-transcription/
 │   └── social-preview.svg               # 1280x640 OpenGraph card for GitHub & directory thumbnails
 ├── scripts/
 │   ├── prepare_compact_video.py         # URL fetch, topology audit, lossless compaction & chunking
-│   ├── transcribe_media.py              # Gemini API Files/generateContent runner for non-Antigravity agents
+│   ├── transcribe_media.py              # Gemini 4 API Files/generateContent runner for non-Antigravity agents
 │   ├── extract_enhanced_clips.py        # 100 Hz - 8 kHz PCM .wav clip extractor (--split-channels)
 │   ├── fix_gdocs_toc_links.py           # Drive/Docs REST & gdocs CLI importer + ToC headingId binder
 │   ├── build_changelog.py               # Turn-by-turn verification diff changelog generator

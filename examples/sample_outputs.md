@@ -6,44 +6,44 @@ These side-by-side excerpts use a fictional engineering roundtable (*Cloud Infra
 
 ## 1. Verbatim Perfect (`*_Perfect_Transcript.md`)
 
-Preserves every spoken word, natural false starts, self-corrections, audience reactions, and transparent VoIP packet-loss markers without fabricating missing speech.
+Preserves every spoken word, natural false starts, self-corrections, audience reactions, platform edit splices, and honest VoIP packet-loss markers without fabricating missing speech.
 
 ```markdown
-# Cloud Infrastructure Architecture Q&A — Verbatim Transcript
+# Cloud Infrastructure Architecture Q&A: Verbatim Transcript
 
 - **Duration:** 48:15
 - **Speakers:** Maya Lin (Moderator), David Park (Principal Infrastructure Architect)
 
 ---
 
-**[11:32] David Park:** So the—the second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, right, and we told the on-call rotation, like, "Just watch tail latency for a week." And basically p99 dropped from forty-two milliseconds down to eleven.
+**[11:32] David Park:** So the- the second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, right, and we told the on-call rotation, like, "Just watch tail latency for a week." And basically p99 dropped from forty-two milliseconds down to eleven. Before we shipped it- *[audio splice]* the storage controller firmware also needed a patch.
 
-**[41:18] Remote Attendee:** Hi, can you hear me? My mic muted earlier *[chuckles]*—so for the cross-region replication lag, I noticed *[heavy packet loss / audio dropouts]* ...snapshot interval... *[garbled]* ...still seeing retries?
+**[41:18] Remote Attendee:** Hi, can you hear me? My mic muted earlier *[chuckles]*, so for the cross-region replication lag, I noticed *[heavy packet loss / audio dropouts]* ...snapshot interval... *[garbled]* ...still seeing retries?
 ```
 
 ---
 
 ## 2. Companion Clean-Read (`*_Clean_Read_Transcript.md`)
 
-Removes spoken filler (*"like"*, *"basically"*, *"right"*), stutters, and abandoned clauses while keeping 100% of factual claims, numbers, speaker voice, and `[MM:SS]` timestamps. Ideal for editorial review and quote sign-off.
+Removes spoken filler (*"like"*, *"basically"*, *"right"*), stutters, and abandoned clauses while keeping 100% of factual claims, numbers, speaker voice, and `[MM:SS]` timestamps. Useful for editorial review and quote sign-off.
 
 ```markdown
-**[11:32] David Park:** The second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, and we asked the on-call rotation to watch tail latency for a week. P99 dropped from 42 milliseconds down to 11 milliseconds.
+**[11:32] David Park:** The second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, and we asked the on-call rotation to watch tail latency for a week. P99 dropped from 42 milliseconds down to 11 milliseconds, after patching the storage controller firmware.
 
-**[41:18] Remote Attendee:** Can you hear me? My mic muted earlier *[chuckles]*—for cross-region replication lag, I noticed *[heavy packet loss / audio dropouts]* ...snapshot interval... *[garbled]* ...still seeing retries?
+**[41:18] Remote Attendee:** Hi, can you hear me? My mic muted earlier *[chuckles]*. For the cross-region replication lag, I noticed *[heavy packet loss / audio dropouts]* ...snapshot interval... *[garbled]* ...still seeing retries?
 ```
 
 ---
 
 ## 3. Thematic Clean-Read (`*_Thematic_Clean_Read_Transcript.md`)
 
-Organizes the Clean-Read text into chronological numbered sections paired with a GitHub-slug Table of Contents (rebound to native Google Docs `#heading=h.xxx` targets by `fix_gdocs_toc_links.py`) and one-sentence italic executive takeaways.
+Organizes the Clean-Read text into chronological numbered themes paired with a GitHub-slug Table of Contents (rebound to native Google Docs `#heading=h.xxx` targets by `fix_gdocs_toc_links.py`) and one-sentence italic takeaways, giving both human readers and downstream agents clean, structured signal right away.
 
 ```markdown
 ## Table of Contents
 
-- [1. Ephemeral NVMe Latency Benchmarks](#1-ephemeral-nvme-latency-benchmarks) — *11:32–18:45*
-- [2. Cross-Region Replication Q&A](#2-cross-region-replication-qa) — *41:18–48:15*
+- [1. Ephemeral NVMe Latency Benchmarks](#1-ephemeral-nvme-latency-benchmarks) (*11:32 to 18:45*)
+- [2. Cross-Region Replication Q&A](#2-cross-region-replication-qa) (*41:18 to 48:15*)
 
 ---
 
@@ -51,7 +51,7 @@ Organizes the Clean-Read text into chronological numbered sections paired with a
 
 *Takeaway: Moving four stateful shard clusters onto ephemeral NVMe volumes cut p99 tail latency from 42 ms to 11 ms over a one-week trial.*
 
-**[11:32] David Park:** The second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, and we asked the on-call rotation to watch tail latency for a week. P99 dropped from 42 milliseconds down to 11 milliseconds.
+**[11:32] David Park:** The second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, and we asked the on-call rotation to watch tail latency for a week. P99 dropped from 42 milliseconds down to 11 milliseconds, after patching the storage controller firmware.
 ```
 
 ---

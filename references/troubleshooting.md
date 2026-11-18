@@ -1,6 +1,6 @@
 # Cross-Platform Troubleshooting Guide
 
-Common setup and runtime issues across macOS, Linux, and Windows and how the toolkit handles them.
+Setup, media edge-case, and runtime fixes across macOS, Linux, and Windows.
 
 ---
 
@@ -42,7 +42,7 @@ Conference platforms (Zoom, Meet, Teams) and YouTube AAC encoders frequently exp
 
 ## 4. Long Videos Triggering Agent Context Compaction
 
-A 60-minute `1 FPS` MP4 (~55–65 MB) can fit inside a single 100 MB file-size limit while still overflowing active agent context once `.wav` verification clips are loaded.
+A 60-minute `1 FPS` MP4 (~55 to 65 MB) fits under a 100 MB upload cap while still overflowing active agent context once `.wav` verification clips are loaded.
 
 - **Default mitigation:** `prepare_compact_video.py` automatically segments outputs exceeding **`45 MB`** or **`25 minutes`** into **`1200s` (20-minute)** lossless chunks (`*_part00.mp4`, `*_part01.mp4`, ...), forcing a keyframe every `10s` (`-g 10`) so `-c copy` splits stay within seconds of cut boundaries.
 - **Pass 1 safeguard:** Write each segment's verbatim output (`verbatim_chunk_01.md`, `verbatim_chunk_02.md`, ...) directly to disk before opening the next segment.
@@ -89,3 +89,21 @@ python3 scripts/fix_gdocs_toc_links.py <DOC_ID>
 - **Spotify (`open.spotify.com/episode/...`):** Direct Spotify audio streams use DRM, so `prepare_compact_video.py` automatically resolves the episode title/show via Spotify public metadata to the publisher's **DRM-free public RSS audio enclosure** (`.mp3`/`.m4a`) and writes a `.info.json` metadata file. Pass an **episode** URL (`/episode/...`), not a show URL (`/show/...`).
 - **Platform-Exclusive Paid/Subscriber Feeds:** Episodes distributed *only* inside Spotify/Apple paid channels without a public RSS enclosure cannot be fetched remotely; export or download the audio file locally and pass `--input-path`.
 - **YouTube Music (`music.youtube.com/watch?v=...`):** Add `--audio-only` so `prepare_compact_video.py` skips downloading video frames and fetches only the non-DRC audio stream (`ba[format_id!*=-drc]`).
+
+---
+
+## 8. Loom & HLS Video Sources (Metadata Skew, `720p` Fallback, and Audio Splices)
+
+- **No `480p` rendition on Loom:** Many Loom recordings offer only `720p` and `1080p` HLS playlists. `prepare_compact_video.py` falls back to `<=720p` before `1080p` and downloads HLS fragments concurrently (`--concurrent-fragments 8`) to cut bandwidth and wait time. For dense screen-shares or UI demos, pass `--screen-share` (`>=960px`, `CRF 28`).
+- **`channel: null` and `.info.json` duration drift:** Loom populates speaker identity in `uploader` while leaving `channel` null, and Loom server-side silence/pause trimming can shorten the actual rendered MP4 relative to `.info.json` metadata (`duration` and `chapters`). Always use `ffprobe` stream duration as timeline ground truth.
+- **Auto-chapter misspellings & audio splices:** Treat AI-generated `.info.json` chapter titles as provisional hints only; cross-check company and speaker spellings against spoken audio and `.wav` clips. Mark platform jump cuts as `*[audio splice]*` rather than network packet loss.
+
+---
+
+## 9. Stage 4 `.wav` Batch Size & PowerShell Wildcard Cleanup
+
+- **Limit parallel `.wav` reads:** Inside Google Antigravity, open extracted `.wav` clips in batches of **3 to 5 files per turn** via `read_file`. Loading 10+ uncompressed `.wav` binaries in one turn can trigger model output errors or force context compaction.
+- **PowerShell `-LiteralPath` vs. `-Path`:** On Windows PowerShell, `Remove-Item -LiteralPath ".\scratch\*.wav"` treats `*` literally and deletes nothing. Use `-Path`:
+  ```powershell
+  Remove-Item -Path ".\scratch\*.wav" -Force
+  ```

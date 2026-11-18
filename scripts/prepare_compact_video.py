@@ -1,15 +1,16 @@
 """
 Prepare an ingestion-ready compact media file while preserving audio fidelity.
 
-Supports online video and podcast URLs (YouTube, YouTube Music, Apple Podcasts,
+Supports online video and podcast URLs (YouTube, YouTube Music, Loom, Apple Podcasts,
 Spotify episodes via public RSS enclosure matching, direct media URLs), local video
-files (MP4, MOV, MKV, WebM), audio-only files (M4A, MP3, WAV, FLAC, OGG), diverse
+files (MP4, MOV, MKV, WebM), audio-only files (M4A, MP3, WAV, FLAC, OGG), common
 audio codecs (AAC, MP3, Opus, Vorbis, PCM), true-stereo vs. dual-mono topology checks
 (-45 dB RMS threshold), no-upscale scaling, and compaction-safe lossless segmentation.
 
 Usage:
     python prepare_compact_video.py --input-path panel.mp4
     python prepare_compact_video.py --url "https://www.youtube.com/watch?v=..." -o out/compact.mp4
+    python prepare_compact_video.py --url "https://www.loom.com/share/..." --download-dir recordings -o work/compact.mp4
     python prepare_compact_video.py --url "https://podcasts.apple.com/..."
     python prepare_compact_video.py --url "https://open.spotify.com/episode/..."
     python prepare_compact_video.py --input-path interview.wav
@@ -43,6 +44,29 @@ AUDIO_ONLY_EXT_BY_CODEC = {
     "libvorbis": ".ogg",
 }
 HTTP_USER_AGENT = "Mozilla/5.0 (compatible; video-transcription-skill/1.0)"
+DEFAULT_AUDIO_FORMAT = "ba[format_id!*=-drc][ext=m4a]/ba[format_id!*=-drc]/ba/b"
+DEFAULT_VIDEO_FORMAT = (
+    "bv*[height<=480]+ba[format_id!*=-drc]/b[height<=480]/"
+    "bv*[height<=720]+ba[format_id!*=-drc]/b[height<=720]/"
+    "bv*+ba[format_id!*=-drc]/b/ba[format_id!*=-drc]/ba"
+)
+SCREEN_SHARE_VIDEO_FORMAT = (
+    "bv*[height<=720]+ba[format_id!*=-drc]/b[height<=720]/"
+    "bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/"
+    "bv*+ba[format_id!*=-drc]/b/ba[format_id!*=-drc]/ba"
+)
+
+
+def build_video_format_selector(max_width: int = 480) -> str:
+    """Select yt-dlp format ladder matching requested target video width."""
+    if max_width <= 480:
+        return DEFAULT_VIDEO_FORMAT
+    if max_width <= 1280:
+        return SCREEN_SHARE_VIDEO_FORMAT
+    return (
+        "bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/"
+        "bv*+ba[format_id!*=-drc]/b/ba[format_id!*=-drc]/ba"
+    )
 
 
 def require_binary(name: str) -> str:
@@ -347,9 +371,19 @@ def resolve_and_download_podcast(url: str, dl_dir: Path) -> Path:
     return audio_path
 
 
-def download_source_video(url: str, output_path: str | None, audio_only: bool = False) -> Path:
+def download_source_video(
+    url: str,
+    output_path: str | None,
+    audio_only: bool = False,
+    download_dir: str | None = None,
+    concurrent_fragments: int = 8,
+    max_width: int = 480,
+) -> Path:
     """Download online video or podcast URL preferring non-DRC audio and writing .info.json."""
-    dl_dir = Path(output_path).parent if output_path else Path.cwd()
+    if download_dir:
+        dl_dir = Path(download_dir).expanduser()
+    else:
+        dl_dir = Path(output_path).parent if output_path else Path.cwd()
     if not str(dl_dir):
         dl_dir = Path.cwd()
     dl_dir.mkdir(parents=True, exist_ok=True)
@@ -357,23 +391,25 @@ def download_source_video(url: str, output_path: str | None, audio_only: bool = 
     if is_spotify_episode_url(url) or ("open.spotify.com" in urllib.parse.urlparse(url).netloc.lower()):
         return resolve_and_download_podcast(url, dl_dir)
 
-    out_template = str(dl_dir / "%(title).80B [%(id)s].%(ext)s")
+    out_template = str(dl_dir / "%(title).80B_[%(id)s].%(ext)s")
     yt_exe = shutil.which("yt-dlp")
     base_cmd = [yt_exe] if yt_exe else [sys.executable, "-m", "yt_dlp"]
     if audio_only:
-        fmt = "ba[format_id!*=-drc][ext=m4a]/ba[format_id!*=-drc]/ba/b"
+        fmt = DEFAULT_AUDIO_FORMAT
         merge_args: list[str] = []
         mode_note = "audio-only, non-DRC, info.json"
     else:
-        fmt = "bv*[height<=480]+ba[format_id!*=-drc]/b[height<=480]/bv*+ba[format_id!*=-drc]/b/ba[format_id!*=-drc]/ba"
+        fmt = build_video_format_selector(max_width)
         merge_args = ["--merge-output-format", "mp4"]
-        mode_note = "non-DRC audio, height<=480 or audio feed, info.json"
+        mode_note = f"non-DRC audio, target width<={max_width} (adaptive fallback), info.json"
 
     cmd = [
         *base_cmd,
         "-f",
         fmt,
         *merge_args,
+        "--concurrent-fragments",
+        str(max(1, concurrent_fragments)),
         "--write-info-json",
         "--restrict-filenames",
         "-o",
@@ -687,13 +723,30 @@ def main() -> int:
         "-u",
         "--url",
         default="",
-        help="Online video or podcast URL (YouTube, YouTube Music, Apple Podcasts, Spotify episode)",
+        help="Online video or podcast URL (YouTube, YouTube Music, Loom, Apple Podcasts, Spotify episode)",
     )
     parser.add_argument("-o", "--output-path", dest="output_path", default="", help="Target compact media path")
+    parser.add_argument(
+        "--download-dir",
+        dest="download_dir",
+        default="",
+        help="Optional directory for raw --url downloads and .info.json (default: parent of --output-path)",
+    )
+    parser.add_argument(
+        "--concurrent-fragments",
+        type=int,
+        default=8,
+        help="Concurrent HLS/DASH fragments for yt-dlp downloads (default: 8)",
+    )
     parser.add_argument(
         "--audio-only",
         action="store_true",
         help="Download/extract audio-only without video frames (ideal for podcasts & music.youtube.com)",
+    )
+    parser.add_argument(
+        "--screen-share",
+        action="store_true",
+        help="Screen-share / slide preset (sets min --width to 960 and max --crf to 28 for legible UI text)",
     )
     parser.add_argument("--width", type=int, default=480, help="Max video width in pixels (default: 480, no upscale)")
     parser.add_argument("--fps", type=int, default=1, help="Target video frame rate (default: 1)")
@@ -724,8 +777,18 @@ def main() -> int:
     ffmpeg_bin = require_binary("ffmpeg")
     ffprobe_bin = require_binary("ffprobe")
 
+    effective_width = max(args.width, 960) if args.screen_share else args.width
+    effective_crf = min(args.crf, 28) if args.screen_share else args.crf
+
     if args.url and not args.input_path:
-        input_path = download_source_video(args.url, args.output_path or None, audio_only=args.audio_only)
+        input_path = download_source_video(
+            args.url,
+            args.output_path or None,
+            audio_only=args.audio_only,
+            download_dir=args.download_dir or None,
+            concurrent_fragments=args.concurrent_fragments,
+            max_width=effective_width,
+        )
     else:
         input_path = Path(args.input_path).expanduser()
 
@@ -781,7 +844,7 @@ def main() -> int:
         )
     else:
         final_output = compact_video_stream(
-            ffmpeg_bin, resolved_input, audio_codec, output_arg, args.width, args.fps, args.crf
+            ffmpeg_bin, resolved_input, audio_codec, output_arg, effective_width, args.fps, effective_crf
         )
 
     new_mb = round(final_output.stat().st_size / (1024 * 1024), 2)
