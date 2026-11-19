@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+import attend_webinar  # noqa: E402
 import build_changelog  # noqa: E402
 import extract_enhanced_clips  # noqa: E402
 import fix_gdocs_toc_links  # noqa: E402
@@ -263,9 +264,54 @@ class TestExtractEnhancedClipsHelpers(unittest.TestCase):
             self.assertEqual(extract_enhanced_clips.next_clip_start_index(tmp), 5)
 
 
+class TestAttendWebinarHelpers(unittest.TestCase):
+    def test_detect_end_signal_phrase_and_url(self) -> None:
+        self.assertEqual(
+            attend_webinar.detect_end_signal("This webinar has been ended by host", "https://events.zoom.us/ejl/abc/join"),
+            "this webinar has been ended by host",
+        )
+        self.assertEqual(
+            attend_webinar.detect_end_signal("Rate this session", "https://events.zoom.us/ejl/abc/meeting/survey?sessionId=1"),
+            "url:/meeting/survey",
+        )
+        self.assertIsNone(
+            attend_webinar.detect_end_signal("Live Q&A in progress", "https://events.zoom.us/ejl/abc/join/xyz")
+        )
+
+    def test_parse_silencedetect_and_compute_trim_bounds(self) -> None:
+        stderr = (
+            "[silencedetect @ 0x1] silence_start: 0.002\n"
+            "[silencedetect @ 0x1] silence_end: 311.526 | silence_duration: 311.524\n"
+            "[silencedetect @ 0x1] silence_start: 2401.473\n"
+            "[silencedetect @ 0x1] silence_end: 3613.807 | silence_duration: 1212.334\n"
+        )
+        silences = attend_webinar.parse_silencedetect_output(stderr)
+        self.assertEqual(silences, [(0.002, 311.526), (2401.473, 3613.807)])
+        bounds = attend_webinar.compute_trim_bounds(silences, 3613.807, lead_pad=3.0, tail_pad=4.0)
+        self.assertEqual(bounds, (308.53, 2405.47))
+
+    def test_compute_trim_bounds_skips_negligible_silence(self) -> None:
+        self.assertIsNone(attend_webinar.compute_trim_bounds([(0.0, 2.5)], 600.0))
+
+    def test_resolve_segment_settings(self) -> None:
+        self.assertEqual(
+            prepare_compact_video.resolve_segment_settings(False, None, None, None),
+            (1200, 25.0, 45.0),
+        )
+        self.assertEqual(
+            prepare_compact_video.resolve_segment_settings(True, None, None, None),
+            (600, 15.0, 25.0),
+        )
+        self.assertEqual(
+            prepare_compact_video.resolve_segment_settings(True, 900, 20.0, 30.0),
+            (900, 20.0, 30.0),
+        )
+
+
 class TestCliHelpAndRepoHygiene(unittest.TestCase):
     def test_cli_help_exit_zero(self) -> None:
         scripts = [
+            "attend_webinar.py",
             "prepare_compact_video.py",
             "extract_enhanced_clips.py",
             "transcribe_media.py",

@@ -43,6 +43,11 @@ if (-not $InputPath -and -not $Url) {
 
 $EffectiveWidth = if ($ScreenShare) { [Math]::Max($Width, 960) } else { $Width }
 $EffectiveCrf = if ($ScreenShare) { [Math]::Min($Crf, 28) } else { $Crf }
+if ($ScreenShare) {
+    if (-not $PSBoundParameters.ContainsKey("SegmentSeconds")) { $SegmentSeconds = 600 }
+    if (-not $PSBoundParameters.ContainsKey("SegmentTriggerMinutes")) { $SegmentTriggerMinutes = 15 }
+    if (-not $PSBoundParameters.ContainsKey("SegmentTriggerMB")) { $SegmentTriggerMB = 25 }
+}
 
 if ($Url -and -not $InputPath) {
     $dlDir = if ($DownloadDir) { $DownloadDir } elseif ($OutputPath) { Split-Path -Parent $OutputPath } else { (Get-Location).Path }

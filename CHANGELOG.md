@@ -4,6 +4,19 @@ All notable changes to the `video-transcription` agent skill and toolkit will be
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-19
+
+### Added
+- **Remote webinar attendance and capture (`scripts/attend_webinar.py`, `references/webinar-capture.md`, `SKILL.md`, `README.md`, `CONTRIBUTING.md`, `troubleshooting.md`):** Added Stage 0B and a dedicated webinar-capture reference guide for passive browser webinar attendance (Zoom Events, Zoom Web Client, and web streams) via headless Chromium (`--headless=new`), hard-blocking camera and microphone (`permissions=[]` + `getUserMedia` `NotAllowedError` override), capturing tab video (`1280x720` VP8) and audio (`48 kHz` `128 kbps` Opus, `suppressLocalAudioPlayback: true`, never `--mute-audio`) directly to disk without virtual audio cables, streaming live JSON telemetry + screenshots, and accepting agent commands via JSON file.
+- **Reference-document grounding for any recording (`SKILL.md`, `README.md`):** Added optional Stage 3 grounding for supporting PDF reports, PowerPoint `.pptx` decks, Google Slides, and handouts across all recordings (presentations, Looms, webinars, and calls). Extracts document text to plain text via Python (`pypdf`, `python-pptx`, or Slides/Docs text export) as spelling and terminology hints, sharpening proper nouns and frameworks without filling up visual context or altering what speakers actually said aloud.
+- **Auto-end detection & lossless silence trimming (`scripts/attend_webinar.py`):** Detects end-of-webinar phrases and post-webinar survey URLs before dismissing interstitials, falls back to sustained post-speech silence (`--end-silence-seconds 180` at `-45 dB`), and losslessly (`-c copy`) trims leading waiting-room and trailing silence using `ffmpeg silencedetect`.
+- **Unit tests for webinar helpers and `--screen-share` segmentation (`tests/test_scripts.py`):** Added tests for `detect_end_signal`, `parse_silencedetect_output`, `compute_trim_bounds`, `attend_webinar.py --help` (stdlib-only lazy Playwright import), and `prepare_compact_video.resolve_segment_settings`.
+
+### Changed
+- **Compaction-safe `--screen-share` segmentation (`scripts/prepare_compact_video.py`, `scripts/prepare_compact_video.ps1`, `SKILL.md`, `README.md`, `troubleshooting.md`):** Tightened default `--screen-share` / `-ScreenShare` (`>=960px`) segmentation from `1200s / 25 min / 45 MB` to `600s / 15 min / 25 MB` across both Python and PowerShell prep scripts so high-resolution slide captures stay safely inside multimodal agent context limits.
+- **Stage 4 segment-boundary verification (`SKILL.md`, `README.md`, `troubleshooting.md`):** Added explicit guidance to extract `+/-4s` enhanced `.wav` clips around any mid-sentence segment boundary against the unsplit original recording so keyframe cuts never drop boundary words.
+- **Compact README & dedicated CLI reference (`README.md`, `references/cli-reference.md`, `SKILL.md`, `assets/social-preview.svg`):** Rewrote `README.md` into a concise, artifact-led layout (`Outputs`, `Ask your agent`, `Develop and verify`) matching `osbornec/weekly-product-review`, moved full CLI flag tables and manual install commands into `references/cli-reference.md`, tightened `SKILL.md` frontmatter and opening copy, and redesigned `assets/social-preview.svg` on a clean light studio canvas showing a synthetic Thematic Clean-Read transcript card.
+
 ## [1.1.0] - 2026-11-19
 
 ### Added

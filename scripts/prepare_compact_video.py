@@ -714,6 +714,23 @@ def segment_if_needed(
     return segments
 
 
+def resolve_segment_settings(
+    screen_share: bool,
+    segment_seconds: int | None,
+    trigger_minutes: float | None,
+    trigger_mb: float | None,
+) -> tuple[int, float, float]:
+    """Return (segment_seconds, trigger_minutes, trigger_mb) tuned for talking-head vs. screen-share."""
+    default_sec = 600 if screen_share else 1200
+    default_min = 15.0 if screen_share else 25.0
+    default_mb = 25.0 if screen_share else 45.0
+    return (
+        default_sec if segment_seconds is None else segment_seconds,
+        default_min if trigger_minutes is None else trigger_minutes,
+        default_mb if trigger_mb is None else trigger_mb,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Compact video/audio to <=480px 1 FPS with lossless/high-bitrate audio and auto-segmentation."
@@ -746,7 +763,7 @@ def main() -> int:
     parser.add_argument(
         "--screen-share",
         action="store_true",
-        help="Screen-share / slide preset (sets min --width to 960 and max --crf to 28 for legible UI text)",
+        help="Screen-share / slide preset (min --width 960, max --crf 28, and tighter 600s/25MB segmentation)",
     )
     parser.add_argument("--width", type=int, default=480, help="Max video width in pixels (default: 480, no upscale)")
     parser.add_argument("--fps", type=int, default=1, help="Target video frame rate (default: 1)")
@@ -754,20 +771,20 @@ def main() -> int:
     parser.add_argument(
         "--segment-seconds",
         type=int,
-        default=1200,
-        help="Lossless segment duration in seconds when threshold exceeded (default: 1200; 0 disables)",
+        default=None,
+        help="Lossless segment duration in seconds when threshold exceeded (default: 1200, or 600 with --screen-share; 0 disables)",
     )
     parser.add_argument(
         "--segment-trigger-minutes",
         type=float,
-        default=25.0,
-        help="Auto-segment compact outputs longer than N minutes (default: 25.0)",
+        default=None,
+        help="Auto-segment compact outputs longer than N minutes (default: 25.0, or 15.0 with --screen-share)",
     )
     parser.add_argument(
         "--segment-trigger-mb",
         type=float,
-        default=45.0,
-        help="Auto-segment compact outputs larger than N MB (default: 45.0)",
+        default=None,
+        help="Auto-segment compact outputs larger than N MB (default: 45.0, or 25.0 with --screen-share)",
     )
     args = parser.parse_args()
 
@@ -779,6 +796,12 @@ def main() -> int:
 
     effective_width = max(args.width, 960) if args.screen_share else args.width
     effective_crf = min(args.crf, 28) if args.screen_share else args.crf
+    seg_seconds, seg_trigger_min, seg_trigger_mb = resolve_segment_settings(
+        args.screen_share,
+        args.segment_seconds,
+        args.segment_trigger_minutes,
+        args.segment_trigger_mb,
+    )
 
     if args.url and not args.input_path:
         input_path = download_source_video(
@@ -858,9 +881,9 @@ def main() -> int:
         ffprobe_bin,
         final_output,
         new_mb,
-        args.segment_seconds,
-        args.segment_trigger_minutes,
-        args.segment_trigger_mb,
+        seg_seconds,
+        seg_trigger_min,
+        seg_trigger_mb,
     )
     return 0
 

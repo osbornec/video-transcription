@@ -44,8 +44,9 @@ Conference platforms (Zoom, Meet, Teams) and YouTube AAC encoders frequently exp
 
 A 60-minute `1 FPS` MP4 (~55 to 65 MB) fits under a 100 MB upload cap while still overflowing active agent context once `.wav` verification clips are loaded.
 
-- **Default mitigation:** `prepare_compact_video.py` automatically segments outputs exceeding **`45 MB`** or **`25 minutes`** into **`1200s` (20-minute)** lossless chunks (`*_part00.mp4`, `*_part01.mp4`, ...), forcing a keyframe every `10s` (`-g 10`) so `-c copy` splits stay within seconds of cut boundaries.
+- **Default mitigation:** `prepare_compact_video.py` automatically segments outputs exceeding **`45 MB`** or **`25 minutes`** into **`1200s` (20-minute)** lossless chunks (`*_part00.mp4`, `*_part01.mp4`, ...), forcing a keyframe every `10s` (`-g 10`) so `-c copy` splits stay within seconds of cut boundaries. With `--screen-share` (`>=960px`), thresholds tighten automatically to **`25 MB`** / **`15 minutes`** and **`600s` (10-minute)** chunks.
 - **Pass 1 safeguard:** Write each segment's verbatim output (`verbatim_chunk_01.md`, `verbatim_chunk_02.md`, ...) directly to disk before opening the next segment.
+- **Pass 2 seam check:** Include a `+/-4s` Stage 4 `.wav` audit clip around any mid-sentence segment boundary against the unsplit original media.
 - Override segment length if needed: `--segment-seconds 900` (15-minute chunks).
 
 ---
@@ -107,3 +108,18 @@ python3 scripts/fix_gdocs_toc_links.py <DOC_ID>
   ```powershell
   Remove-Item -Path ".\scratch\*.wav" -Force
   ```
+
+---
+
+## 10. Remote Webinar Capture (`attend_webinar.py`) & Segment Boundary Seams
+
+See [`webinar-capture.md`](./webinar-capture.md) for the complete Chromium audio flag, localhost controller, and Zoom Events architecture.
+
+- **Playwright Chromium missing:** `attend_webinar.py` imports Playwright lazily so `--help` and stdlib unit tests work without extra packages. For live capture, install once:
+  ```bash
+  pip install playwright && playwright install chromium
+  ```
+- **Confirming camera & mic stay off:** Run `python3 scripts/attend_webinar.py --self-test` before joining a live call and confirm `getUserMedia check: BLOCKED:NotAllowedError` alongside non-silent Opus RMS telemetry (`> -40 dB`).
+- **Zoom Events post-webinar survey redirect:** When a host ends a Zoom Event, Zoom displays `"This webinar has been ended by host"` with an `OK` button and redirects to `/meeting/survey`. `attend_webinar.py` checks end-of-webinar text and URL patterns before dismissing modals, falls back to sustained post-speech silence (`--end-silence-seconds 180`), and losslessly trims leading waiting-room and trailing silence (`-c copy`) during finalization.
+- **High-resolution `--screen-share` context limits:** Loading a 20-minute `960px` `1 FPS` segment (`~35 MB`) in a busy agent context can trigger payload/context errors. `prepare_compact_video.py --screen-share` automatically tightens segmentation to `600s` (10-minute, `~15-17 MB`) chunks.
+- **Mid-sentence segment seams:** Lossless `-f segment -c copy` cuts on keyframes and can occasionally split a spoken phrase across `part00` and `part01`. Always include a `+/-4s` Stage 4 `.wav` audit clip around any mid-sentence segment boundary against the unsplit original recording.

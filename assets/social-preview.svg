@@ -1,81 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="osbornec/video-transcription: Turn videos, Looms, and podcasts into verified agent knowledge">
-  <defs>
-    <clipPath id="verified-card-clip">
-      <rect x="740" y="274" width="476" height="302" rx="6" />
-    </clipPath>
-  </defs>
-
-  <!-- Asymmetric studio split canvas -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="Video Transcription: Transcribe videos, live webinars, and podcasts straight into Markdown and Google Docs">
+  <!-- Clean white canvas -->
   <rect width="1280" height="640" fill="#FFFFFF" />
-  <rect x="692" y="0" width="588" height="640" fill="#F1F5F9" />
-  <line x1="692" y1="0" x2="692" y2="640" stroke="#CBD5E1" stroke-width="1" />
 
-  <!-- Left column: Positioning & install -->
-  <text x="64" y="84" fill="#475569" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="600">osbornec / video-transcription</text>
+  <!-- Left column: Title, outcome copy, subtle install pill, agents -->
+  <text x="56" y="166" fill="#0F172A" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="56" font-weight="700" letter-spacing="-1.2">Video</text>
+  <text x="56" y="228" fill="#0F172A" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="56" font-weight="700" letter-spacing="-1.2">Transcription</text>
 
-  <text x="64" y="168" fill="#0F172A" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="44" font-weight="700" letter-spacing="-0.6">Turn videos, Looms</text>
-  <text x="64" y="222" fill="#0F172A" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="44" font-weight="700" letter-spacing="-0.6">&amp; podcasts into verified</text>
-  <text x="64" y="276" fill="#0F172A" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="44" font-weight="700" letter-spacing="-0.6">agent knowledge.</text>
+  <text x="56" y="284" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20">Transcribe videos, live webinars, and podcasts</text>
+  <text x="56" y="314" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20">into verified Markdown and Google Docs your</text>
+  <text x="56" y="344" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20">team and coding agents can read and build from.</text>
 
-  <text x="64" y="340" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19">Gemini 4 multimodal understanding + multi-pass verification.</text>
-  <text x="64" y="370" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19">Ready for people to read and for agents to build from.</text>
+  <rect x="56" y="388" width="466" height="50" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1" />
+  <text x="74" y="419" fill="#0F172A" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="15.5" font-weight="600">npx skills add osbornec/video-transcription</text>
 
-  <rect x="64" y="430" width="478" height="58" rx="6" fill="#0F172A" />
-  <text x="90" y="465" fill="#F8FAFC" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="17" font-weight="600">npx skills add osbornec/video-transcription</text>
+  <text x="56" y="484" fill="#64748B" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Antigravity, Claude Code, Codex, and Cursor</text>
 
-  <text x="64" y="534" fill="#475569" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15">Google Antigravity, Claude Code, Codex, and Cursor</text>
+  <!-- Right column: Simple, unmistakable Pain -> Gain comparison -->
+  <!-- Top muted card: Before (Auto-captions & browser chat tabs) -->
+  <rect x="596" y="88" width="628" height="162" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.2" />
+  <text x="624" y="124" fill="#64748B" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="700" letter-spacing="0.4">BEFORE: AUTO-CAPTIONS &amp; BROWSER CHAT TABS</text>
 
-  <!-- Right studio panel: Before / After transcript artifact -->
-  <!-- Before block: Auto-captions & one-shot tools -->
-  <rect x="740" y="64" width="476" height="178" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1" />
-  <text x="768" y="102" fill="#475569" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="600">Auto-captions &amp; one-shot tools</text>
+  <text x="624" y="164" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">Speaker 1:</text>
+  <text x="716" y="164" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">"...we saw a jump in</text>
+  <rect x="874" y="143" width="96" height="28" rx="5" fill="#FEE2E2" />
+  <text x="883" y="163" fill="#B91C1C" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="14.5" font-weight="600">[unclear]</text>
+  <text x="978" y="164" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">right after</text>
+  <text x="624" y="194" fill="#475569" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">the release shipped."</text>
+  <text x="624" y="230" fill="#94A3B8" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.5">Wrong names, guessed words, trapped in a single browser tab.</text>
 
-  <text x="768" y="140" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">Speaker 1:</text>
-  <text x="768" y="172" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">"...we saw a jump in</text>
-  <rect x="918" y="151" width="94" height="28" rx="4" fill="#FEE2E2" />
-  <text x="925" y="171" fill="#B91C1C" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="15" font-weight="600">[unclear]</text>
-  <text x="1020" y="172" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">right after</text>
-  <text x="768" y="202" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">the release shipped."</text>
+  <!-- Subtle downward arrow connecting Before -> After -->
+  <line x1="910" y1="258" x2="910" y2="284" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+  <polyline points="903,277 910,285 917,277" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 
-  <!-- After block: Verified, themed Markdown sheet -->
-  <g clip-path="url(#verified-card-clip)">
-    <rect x="740" y="274" width="476" height="302" fill="#FFFFFF" />
-    <rect x="740" y="274" width="476" height="5" fill="#0F766E" />
-  </g>
-  <rect x="740" y="274" width="476" height="302" rx="6" fill="none" stroke="#CBD5E1" stroke-width="1" />
+  <!-- Bottom crisp card: After (Verified Markdown & Google Docs in your workspace) -->
+  <rect x="596" y="294" width="628" height="258" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2" />
+  <path d="M606 294 H1214 A10 10 0 0 1 1224 304 V338 H596 V304 A10 10 0 0 1 606 294 Z" fill="#0F172A" />
+  <text x="624" y="321" fill="#FFFFFF" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="13.5" font-weight="600">Session_Thematic_Clean_Read_Transcript.md</text>
+  <text x="1110" y="321" fill="#94A3B8" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12.5" font-weight="600">+ Google Doc</text>
 
-  <text x="768" y="314" fill="#0F172A" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="700">Verified, themed Markdown asset</text>
+  <text x="624" y="374" fill="#0F172A" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">1. Checkout Reliability</text>
 
-  <!-- Minimal audio-check waveform motif -->
-  <g fill="#0F766E" opacity="0.85" aria-hidden="true">
-    <rect x="1084" y="303" width="3" height="8" rx="1" />
-    <rect x="1091" y="298" width="3" height="18" rx="1" />
-    <rect x="1098" y="301" width="3" height="12" rx="1" />
-    <rect x="1105" y="295" width="3" height="24" rx="1" />
-    <rect x="1112" y="300" width="3" height="14" rx="1" />
-    <rect x="1119" y="297" width="3" height="20" rx="1" />
-    <rect x="1126" y="302" width="3" height="10" rx="1" />
-    <rect x="1133" y="296" width="3" height="22" rx="1" />
-    <rect x="1140" y="301" width="3" height="12" rx="1" />
-    <rect x="1147" y="299" width="3" height="16" rx="1" />
-    <rect x="1154" y="303" width="3" height="8" rx="1" />
-    <rect x="1161" y="298" width="3" height="18" rx="1" />
-    <rect x="1168" y="302" width="3" height="10" rx="1" />
-    <rect x="1175" y="304" width="3" height="6" rx="1" />
-  </g>
+  <text x="624" y="410" fill="#64748B" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="14" font-weight="600">[04:12]</text>
+  <text x="690" y="410" fill="#0F172A" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">Maya Lin:</text>
+  <text x="774" y="410" fill="#1E293B" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">"...we saw a jump in</text>
+  <rect x="932" y="389" width="146" height="28" rx="5" fill="#DBEAFE" />
+  <text x="941" y="409" fill="#1D4ED8" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">checkout retries</text>
+  <text x="624" y="440" fill="#1E293B" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">right after the release shipped."</text>
 
-  <text x="768" y="356" fill="#0F766E" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="16" font-weight="700">### 1. Checkout Reliability</text>
+  <line x1="624" y1="468" x2="1196" y2="468" stroke="#E2E8F0" stroke-width="1" />
 
-  <text x="768" y="394" fill="#475569" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="14" font-weight="600">[04:12]</text>
-  <text x="836" y="394" fill="#0F172A" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">Maya Lin</text>
-  <text x="916" y="394" fill="#475569" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15">(verified on screen):</text>
+  <!-- Output file pills -->
+  <rect x="624" y="486" width="128" height="28" rx="5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1" />
+  <text x="688" y="505" text-anchor="middle" fill="#334155" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="12.5" font-weight="600">Perfect.md</text>
 
-  <text x="768" y="430" fill="#1E293B" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">"...we saw a jump in</text>
-  <rect x="918" y="409" width="144" height="28" rx="4" fill="#CCFBF1" />
-  <text x="925" y="429" fill="#115E59" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700">checkout retries</text>
-  <text x="768" y="462" fill="#1E293B" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17">right after the release shipped."</text>
+  <rect x="766" y="486" width="138" height="28" rx="5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1" />
+  <text x="835" y="505" text-anchor="middle" fill="#334155" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="12.5" font-weight="600">Clean_Read.md</text>
 
-  <line x1="768" y1="494" x2="1188" y2="494" stroke="#E2E8F0" stroke-width="1" />
-  <text x="768" y="524" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14">Speaker names read on screen. Unclear spans re-checked in audio.</text>
-  <text x="768" y="548" fill="#334155" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14">Reusable Markdown &amp; Google Docs for teams and their agents.</text>
+  <rect x="918" y="486" width="132" height="28" rx="5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1" />
+  <text x="984" y="505" text-anchor="middle" fill="#334155" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="12.5" font-weight="600">Thematic.md</text>
+
+  <rect x="1064" y="486" width="132" height="28" rx="5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1" />
+  <text x="1130" y="505" text-anchor="middle" fill="#334155" font-family="'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace" font-size="12.5" font-weight="600">Changelog.md</text>
+
+  <text x="624" y="538" fill="#64748B" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12.5">Synthetic sample. Speaker verified on screen; unclear phrase checked in original audio.</text>
 </svg>
