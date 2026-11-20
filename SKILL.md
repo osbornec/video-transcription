@@ -10,7 +10,7 @@ description: >-
 license: MIT
 metadata:
   author: osbornec
-  version: "1.3.1-rc.1"
+  version: "1.3.1"
 references:
   - cli-reference
   - editorial-style-guide

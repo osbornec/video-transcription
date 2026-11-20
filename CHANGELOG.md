@@ -4,7 +4,7 @@ All notable changes to the `video-transcription` agent skill and toolkit will be
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.1-rc.1] - 2026-11-20
+## [1.3.1] - 2026-11-20
 
 ### Added
 - **PowerShell parity for slide capture (`scripts/prepare_compact_video.ps1`):** Added `-CaptureSlides` switch matching `prepare_compact_video.py --capture-slides` (`1080p` source download + `960px` `1 FPS` screen-share proxy).
