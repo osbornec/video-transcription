@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -389,6 +390,69 @@ def resolve_target_heading(
     return None
 
 
+LOCAL_MD_IMAGE_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$", re.MULTILINE)
+LOCAL_REL_LINK_RE = re.compile(r"\[([^\]]+)\]\(\./[^)]+\)")
+
+
+def stage_markdown_for_gdocs_images(md_path: Path) -> tuple[str, list[tuple[str, Path, str]]]:
+    """
+    Replace local Markdown image lines (![alt](./assets/img.png)) with unique placeholder
+    tokens ([[IMG_EMBED_01]]) and flatten local ./ relative links to plain text for Google Docs.
+    External https:// images and links are preserved untouched.
+    """
+    md_dir = md_path.parent
+    raw_text = md_path.read_text(encoding="utf-8")
+    embeds: list[tuple[str, Path, str]] = []
+
+    def _replace_img(match: re.Match[str]) -> str:
+        alt = match.group(1).strip()
+        rel = match.group(2).strip()
+        if rel.startswith(("http://", "https://")):
+            return match.group(0)
+        resolved = (md_dir / rel).resolve()
+        if not resolved.is_file():
+            raise FileNotFoundError(f"Referenced local image not found: {resolved}")
+        token = f"[[IMG_EMBED_{len(embeds) + 1:02d}]]"
+        embeds.append((token, resolved, alt))
+        return token
+
+    staged = LOCAL_MD_IMAGE_RE.sub(_replace_img, raw_text)
+    staged = LOCAL_REL_LINK_RE.sub(r"\1", staged)
+    return staged, embeds
+
+
+def embed_local_images_cli(
+    gdocs_bin: str, doc_id: str, embeds: list[tuple[str, Path, str]], tab_id: str = ""
+) -> int:
+    """Embed staged local images after each placeholder token and remove placeholders in one batched sed call."""
+    if not embeds:
+        return 0
+    for token, img_path, _alt in embeds:
+        cmd_args = ["mutate", "insert-image-from-file", doc_id, str(img_path), "--after", token]
+        if tab_id:
+            cmd_args.extend(["--tab", tab_id])
+        run_gdocs(gdocs_bin, cmd_args)
+        print(f"Embedded {token} -> {img_path.name}")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sed_path = Path(tmpdir) / "remove_img_tokens.sed"
+        sed_lines = [f"s/{token}//" for token, _, _ in embeds]
+        sed_path.write_text("\n".join(sed_lines) + "\n", encoding="utf-8")
+        sed_args = ["mutate", "sed", doc_id, "-f", str(sed_path)]
+        if tab_id:
+            sed_args.extend(["--tab", tab_id])
+        out = run_gdocs(gdocs_bin, sed_args)
+        print(out.strip())
+
+    list_args = ["readonly", "list-images", doc_id]
+    if tab_id:
+        list_args.extend(["--tab", tab_id])
+    list_out = run_gdocs(gdocs_bin, list_args)
+    count = sum(1 for ln in list_out.splitlines() if ln.strip().startswith("kix."))
+    print(f"Verified embedded images in Google Doc: {count} / {len(embeds)}")
+    return count
+
+
 def import_markdown_cli(
     gdocs_bin: str, md_path: str, doc_id: str, title: str
 ) -> tuple[str, str]:
@@ -503,6 +567,12 @@ def main() -> int:
         help="Shortcut file format: url, webloc (macOS), both, or auto (default: url)",
     )
     parser.add_argument(
+        "--embed-local-images",
+        dest="embed_local_images",
+        action="store_true",
+        help="Upload and embed local Markdown images (![alt](./assets/...)) inline into the Google Doc (gdocs backend)",
+    )
+    parser.add_argument(
         "--backend",
         choices=["auto", "gdocs", "rest"],
         default="auto",
@@ -524,7 +594,16 @@ def main() -> int:
     if not use_rest:
         assert gdocs_bin is not None
         if args.import_md:
-            doc_id, derived_title = import_markdown_cli(gdocs_bin, args.import_md, doc_id, args.title)
+            if args.embed_local_images:
+                staged_text, embeds = stage_markdown_for_gdocs_images(Path(args.import_md))
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    staged_md = Path(tmpdir) / Path(args.import_md).name
+                    staged_md.write_text(staged_text, encoding="utf-8")
+                    doc_id, derived_title = import_markdown_cli(gdocs_bin, str(staged_md), doc_id, args.title)
+                if embeds:
+                    embed_local_images_cli(gdocs_bin, doc_id, embeds, args.tab)
+            else:
+                doc_id, derived_title = import_markdown_cli(gdocs_bin, args.import_md, doc_id, args.title)
             if not shortcut_label:
                 shortcut_label = os.path.splitext(os.path.basename(args.import_md))[0] or derived_title
 

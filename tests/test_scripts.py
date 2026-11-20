@@ -16,6 +16,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import attend_webinar  # noqa: E402
 import build_changelog  # noqa: E402
+import capture_slides  # noqa: E402
 import extract_enhanced_clips  # noqa: E402
 import fix_gdocs_toc_links  # noqa: E402
 import prepare_compact_video  # noqa: E402
@@ -95,6 +96,98 @@ class TestFixGDocsTocLinks(unittest.TestCase):
         }
         selected = fix_gdocs_toc_links.select_doc_body(tabbed_doc, "t.1")
         self.assertEqual(selected, {"content": [{"marker": "target"}]})
+
+    def test_stage_markdown_for_gdocs_images(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            assets = tmp / "assets"
+            assets.mkdir()
+            img = assets / "01_00m48s_chart.png"
+            img.write_bytes(b"\x89PNG\r\n\x1a\n")
+            md = tmp / "talk.md"
+            md.write_text(
+                "# Talk\n\nSee [Asset Index](./assets/index.md) and [External](https://example.com).\n\n"
+                "![Figure 01: Chart](./assets/01_00m48s_chart.png)\n"
+                "*Figure 01 (`00:48`): Caption.*\n\n"
+                "![Remote](https://example.com/remote.png)\n",
+                encoding="utf-8",
+            )
+            staged, embeds = fix_gdocs_toc_links.stage_markdown_for_gdocs_images(md)
+            self.assertEqual(len(embeds), 1)
+            self.assertEqual(embeds[0][0], "[[IMG_EMBED_01]]")
+            self.assertEqual(embeds[0][1], img.resolve())
+            self.assertIn("[[IMG_EMBED_01]]", staged)
+            self.assertIn("See Asset Index and [External](https://example.com).", staged)
+            self.assertIn("![Remote](https://example.com/remote.png)", staged)
+
+
+class TestCaptureSlidesHelpers(unittest.TestCase):
+    def test_slug_timestamp_and_filename(self) -> None:
+        self.assertEqual(capture_slides.slugify("Trust vs. # of Agents!"), "trust_vs_of_agents")
+        self.assertEqual(capture_slides.timestamp_to_tag("00:02:06"), "02m06s")
+        self.assertEqual(capture_slides.timestamp_to_tag("01:02:06"), "1h02m06s")
+        self.assertEqual(
+            capture_slides.build_asset_filename(4, "00:02:06", "The Poteto Pyramid"),
+            "04_02m06s_the_poteto_pyramid.png",
+        )
+
+    def test_render_review_html_and_package_assets(self) -> None:
+        manifest = {
+            "title": "Sample Talk",
+            "subtitle": "Speaker Name",
+            "crop": "crop=1470:826:434:16",
+            "slides": [
+                {
+                    "num": 1,
+                    "id": "01",
+                    "file": "s1.png",
+                    "ts": "00:00:48",
+                    "chapter": "1. Intro",
+                    "title": "Throughput Chart",
+                    "category": "Bar Chart",
+                    "verdict": "IN",
+                    "default_keep": True,
+                    "spoken": "We shipped 3,000 PRs.",
+                    "rationale": "High-signal chart.",
+                    "question": None,
+                    "related": [],
+                },
+                {
+                    "num": 2,
+                    "id": "B4",
+                    "file": "s2.png",
+                    "ts": "00:13:05",
+                    "chapter": "2. Tools",
+                    "title": "/statechart Skill",
+                    "category": "Tool Screenshot",
+                    "verdict": "BORDERLINE",
+                    "default_keep": False,
+                    "spoken": "Visualizing state machines.",
+                    "rationale": "Overlay obscures diagram.",
+                    "question": "Drop image but keep URL?",
+                    "related": [],
+                    "urls": ["https://github.com/example/plugin"],
+                },
+            ],
+        }
+        html_out = capture_slides.render_review_html(manifest, "slide_candidates")
+        self.assertIn("HITL Slide Curation Review - Sample Talk", html_out)
+        self.assertIn("Throughput Chart", html_out)
+        self.assertIn("Copy HITL Feedback", html_out)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            cand = tmp / "cand"
+            cand.mkdir()
+            (cand / "s1.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+            (cand / "s2.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+            out_assets = tmp / "assets"
+            idx_path = capture_slides.package_approved_assets(manifest, None, cand, out_assets)
+            self.assertTrue((out_assets / "01_00m48s_throughput_chart.png").is_file())
+            self.assertFalse((out_assets / "02_13m05s_statechart_skill.png").exists())
+            idx_text = idx_path.read_text(encoding="utf-8")
+            self.assertIn("01_00m48s_throughput_chart.png", idx_text)
+            self.assertIn("https://github.com/example/plugin", idx_text)
 
 
 class TestTranscribeMediaHelpers(unittest.TestCase):
@@ -190,6 +283,9 @@ class TestPrepareCompactVideoPodcastHelpers(unittest.TestCase):
         self.assertIn("height<=720", fmt_screen)
         self.assertIn("height<=1080", fmt_screen)
         self.assertLess(fmt_screen.index("height<=720"), fmt_screen.index("height<=1080"))
+
+        fmt_slides = prepare_compact_video.build_video_format_selector(960, capture_slides=True)
+        self.assertTrue(fmt_slides.startswith("bv*[height<=1080]"))
 
     def test_url_detectors_and_rss_parser(self) -> None:
         self.assertTrue(prepare_compact_video.is_spotify_episode_url("https://open.spotify.com/episode/685c45tl6MQyfDac6Qzmor"))
@@ -314,6 +410,7 @@ class TestCliHelpAndRepoHygiene(unittest.TestCase):
             "attend_webinar.py",
             "prepare_compact_video.py",
             "extract_enhanced_clips.py",
+            "capture_slides.py",
             "transcribe_media.py",
             "fix_gdocs_toc_links.py",
             "build_changelog.py",

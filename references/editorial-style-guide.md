@@ -13,7 +13,8 @@ Reference specification for generating consistent Markdown and Google Docs trans
 | **Factual claims, numbers, examples** | 100% preserved | 100% preserved | 100% preserved |
 | **Speaker voice & humor** | Preserved (`*[chuckles]*`, etc.) | Preserved | Preserved |
 | **Timestamps (`[MM:SS]`)** | On every turn & off-mic cue | On every turn | On every turn + section headers |
-| **Structure** | Chronological linear transcript | Chronological linear transcript | Table of Contents + numbered `### N. Title` sections + 1-sentence italic takeaways |
+| **Curated slide assets** *(when Stage 4B is used)* | Clickable links (`[Figure NN](./assets/...)`) only | Inline Markdown images (`![Figure NN](./assets/...)`) + italic captions | Inline Markdown images + italic captions + Google Docs inline embeds |
+| **Structure** | Chronological linear transcript | Chronological linear transcript | Table of Contents + numbered `### N. Title` sections + 1-sentence italic takeaways + On-Slide Links & Resources |
 
 ---
 

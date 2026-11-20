@@ -4,6 +4,16 @@ All notable changes to the `video-transcription` agent skill and toolkit will be
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-20
+
+### Added
+- **Slide capture, PiP auto-crop, and interactive HTML human-in-the-loop (HITL) curation (`scripts/capture_slides.py`, `references/slide-curation-guide.md`, `SKILL.md`, `README.md`, `references/cli-reference.md`):** Added Stage 4B for capturing lossless full-resolution slide PNGs directly from source media (`recordings/`, never the `1 FPS` proxy). Includes consensus fixed broadcast PiP canvas auto-crop detection (`detect-crop`), manifest-driven lossless PNG extraction (`extract`), an interactive chronological HTML review page showing all IN/BORDERLINE/OUT visuals with editorial commentary, lightbox zoom, and clipboard/JSON decision export (`review-html`), and timestamped asset packaging (`NN_MMmSSs_slug.png` + `assets/index.md`) with automatic URL and resource harvesting from dropped slides (`package`).
+- **Two-tier slide-capture intake flag (`scripts/prepare_compact_video.py`):** Added `--capture-slides` to download native `1080p` source video plus original non-DRC audio into `recordings/` while automatically enabling `--screen-share` (`960px`, `CRF 28`, `600s` / `15 min` / `25 MB`) for the Stage 3 transcription proxy.
+- **Inline local image embedding for Google Docs (`scripts/fix_gdocs_toc_links.py`):** Added `--embed-local-images` (for the `gdocs` backend) to stage unique `[[IMG_EMBED_NN]]` placeholder paragraphs, strip local `./` links cleanly, upload and embed every local `./assets/*.png` image inline above its caption, clean up placeholders in one batched `sed` call, verify embedded image count via `list-images`, and bind native ToC `headingId` links.
+- **Self-contained per-video package layout (`SKILL.md`, `references/slide-curation-guide.md`, `references/editorial-style-guide.md`):** Standardized delivering each talk inside `<transcripts_dir>/<Slug>/` containing the Markdown editions, Google Doc shortcut, optional changelog, and `assets/` (inline embeds in Clean-Read and Thematic; clickable links only in Verbatim Perfect).
+- **Google Docs image-embedding and YouTube auto-dub troubleshooting (`references/troubleshooting.md`):** Added Section 11 covering `gdocs mutate insert-image-from-file` `--alt-title`/`--alt-description` errors, literal matching in `gdocs mutate sed`, Windows `.CMD` shim resolution via `shutil.which()`, and selecting the original non-DRC audio stream on multi-language auto-dubbed YouTube videos.
+- **Unit tests for Stage 4B and Google Docs image staging (`tests/test_scripts.py`):** Added unit tests covering `capture_slides.py` helpers, HTML generation, asset packaging with URL harvesting, `--capture-slides` format selection, and `fix_gdocs_toc_links.stage_markdown_for_gdocs_images`.
+
 ## [1.2.0] - 2026-11-19
 
 ### Added

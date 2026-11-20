@@ -57,16 +57,19 @@ SCREEN_SHARE_VIDEO_FORMAT = (
 )
 
 
-def build_video_format_selector(max_width: int = 480) -> str:
-    """Select yt-dlp format ladder matching requested target video width."""
+SLIDE_CAPTURE_VIDEO_FORMAT = (
+    "bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/"
+    "bv*+ba[format_id!*=-drc]/b/ba[format_id!*=-drc]/ba"
+)
+
+
+def build_video_format_selector(max_width: int = 480, capture_slides: bool = False) -> str:
+    """Select yt-dlp format ladder matching requested target video width or 1080p slide capture."""
+    if capture_slides or max_width > 1280:
+        return SLIDE_CAPTURE_VIDEO_FORMAT
     if max_width <= 480:
         return DEFAULT_VIDEO_FORMAT
-    if max_width <= 1280:
-        return SCREEN_SHARE_VIDEO_FORMAT
-    return (
-        "bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/"
-        "bv*+ba[format_id!*=-drc]/b/ba[format_id!*=-drc]/ba"
-    )
+    return SCREEN_SHARE_VIDEO_FORMAT
 
 
 def require_binary(name: str) -> str:
@@ -378,6 +381,7 @@ def download_source_video(
     download_dir: str | None = None,
     concurrent_fragments: int = 8,
     max_width: int = 480,
+    capture_slides: bool = False,
 ) -> Path:
     """Download online video or podcast URL preferring non-DRC audio and writing .info.json."""
     if download_dir:
@@ -399,9 +403,12 @@ def download_source_video(
         merge_args: list[str] = []
         mode_note = "audio-only, non-DRC, info.json"
     else:
-        fmt = build_video_format_selector(max_width)
+        fmt = build_video_format_selector(max_width, capture_slides=capture_slides)
         merge_args = ["--merge-output-format", "mp4"]
-        mode_note = f"non-DRC audio, target width<={max_width} (adaptive fallback), info.json"
+        if capture_slides:
+            mode_note = "1080p source for slide grabs + non-DRC audio, info.json"
+        else:
+            mode_note = f"non-DRC audio, target width<={max_width} (adaptive fallback), info.json"
 
     cmd = [
         *base_cmd,
@@ -765,6 +772,11 @@ def main() -> int:
         action="store_true",
         help="Screen-share / slide preset (min --width 960, max --crf 28, and tighter 600s/25MB segmentation)",
     )
+    parser.add_argument(
+        "--capture-slides",
+        action="store_true",
+        help="Two-tier slide capture preset: downloads 1080p source for lossless PNG grabs while building the 960px 1 FPS --screen-share proxy",
+    )
     parser.add_argument("--width", type=int, default=480, help="Max video width in pixels (default: 480, no upscale)")
     parser.add_argument("--fps", type=int, default=1, help="Target video frame rate (default: 1)")
     parser.add_argument("--crf", type=int, default=35, help="x264 CRF quality factor (default: 35)")
@@ -794,10 +806,11 @@ def main() -> int:
     ffmpeg_bin = require_binary("ffmpeg")
     ffprobe_bin = require_binary("ffprobe")
 
-    effective_width = max(args.width, 960) if args.screen_share else args.width
-    effective_crf = min(args.crf, 28) if args.screen_share else args.crf
+    use_screen_share = args.screen_share or args.capture_slides
+    effective_width = max(args.width, 960) if use_screen_share else args.width
+    effective_crf = min(args.crf, 28) if use_screen_share else args.crf
     seg_seconds, seg_trigger_min, seg_trigger_mb = resolve_segment_settings(
-        args.screen_share,
+        use_screen_share,
         args.segment_seconds,
         args.segment_trigger_minutes,
         args.segment_trigger_mb,
@@ -811,6 +824,7 @@ def main() -> int:
             download_dir=args.download_dir or None,
             concurrent_fragments=args.concurrent_fragments,
             max_width=effective_width,
+            capture_slides=args.capture_slides,
         )
     else:
         input_path = Path(args.input_path).expanduser()

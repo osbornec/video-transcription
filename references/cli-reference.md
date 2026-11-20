@@ -8,7 +8,7 @@ Complete command flags, manual installation commands, runtime compatibility, and
 
 ## Agent Runtime & Model Compatibility
 
-All 5 core pipeline scripts (`prepare_compact_video.py`, `transcribe_media.py`, `extract_enhanced_clips.py`, `fix_gdocs_toc_links.py`, and `build_changelog.py`) use the **Python 3.10+ standard library only**. Optional `playwright` powers Stage 0B live webinar capture (`attend_webinar.py`, imported lazily), and optional `pypdf` / `python-pptx` / `python-docx` handle attached reference decks or legacy `.docx` draft comparisons.
+All 6 core pipeline scripts (`prepare_compact_video.py`, `transcribe_media.py`, `extract_enhanced_clips.py`, `capture_slides.py`, `fix_gdocs_toc_links.py`, and `build_changelog.py`) use the **Python 3.10+ standard library only** at import time. Optional `Pillow` + `numpy` enable pixel-exact PiP crop detection in `capture_slides.py`, optional `playwright` powers Stage 0B live webinar capture (`attend_webinar.py`, imported lazily), and optional `pypdf` / `python-pptx` / `python-docx` handle attached reference decks or legacy `.docx` draft comparisons.
 
 | Agent / Runtime | Stages 3 to 4 (Audio + Visual Pass) | Stage 5 Google Docs Publishing *(Optional)* | Stage 5 Markdown Output |
 | :--- | :--- | :--- | :--- |
@@ -117,6 +117,7 @@ Downloads optional URL sources (YouTube, YouTube Music, Loom, Apple Podcasts, Sp
 | `--concurrent-fragments` | `8` | Concurrent HLS/DASH fragment connections for `yt-dlp` |
 | `--audio-only` | `false` | Download/extract audio only without video frames (podcasts & YouTube Music) |
 | `--screen-share` | `false` | Screen-share / slide preset (`>=960px` max width, `<=28` CRF, and tighter `600s` / `15 min` / `25 MB` segmentation) |
+| `--capture-slides` | `false` | Two-tier slide capture preset: downloads native `1080p` source for Stage 4B PNG grabs while building the `960px` `--screen-share` `1 FPS` proxy |
 | `--width` | `480` | Max width in pixels (never upscales smaller inputs; keeps even width/height) |
 | `--fps` | `1` | Compact frame rate for visual speaker diarization |
 | `--crf` | `35` | x264 CRF quality factor |
@@ -167,13 +168,24 @@ Extracts targeted windows (flagged `[unclear]` intervals and `+/-4s` mid-sentenc
 python3 scripts/extract_enhanced_clips.py -i "./recordings/panel_session.mp4" -o "./scratch" -w "04:10-04:35" "28:30-29:05"
 ```
 
-### 5. [`scripts/fix_gdocs_toc_links.py`](../scripts/fix_gdocs_toc_links.py) *(Optional Google Docs Exporter)*
-Uploads Markdown to Google Docs, resolves imported `headingId` targets, rebinds all `#slug` Table of Contents anchors to `#heading=h.xxx`, and writes local `.url` / `.webloc` shortcuts.
+### 5. [`scripts/capture_slides.py`](../scripts/capture_slides.py) *(Optional Stage 4B Slide Capture and HITL Curation)*
+Detects fixed conference broadcast PiP slide canvas crops (`detect-crop`), extracts lossless full-resolution slide PNGs from the original source video (`extract`), builds an interactive chronological HTML HITL curation page (`review-html`), and packages approved reusable assets with timestamped filenames and `assets/index.md` (`package`). See [`slide-curation-guide.md`](./slide-curation-guide.md).
+
+```bash
+python3 scripts/capture_slides.py detect-crop -i "./recordings/talk.mp4" -t 00:00:48 00:02:06 00:13:38
+python3 scripts/capture_slides.py extract -i "./recordings/talk.mp4" -m "./scratch/manifest.json" -o "./scratch/slide_candidates" --crop "crop=1470:826:434:16"
+python3 scripts/capture_slides.py review-html -m "./scratch/manifest.json" --slides-dir "slide_candidates" -o "./scratch/slide_curation_review.html"
+python3 scripts/capture_slides.py package -m "./scratch/manifest.json" -d "./scratch/hitl_slide_decisions.json" --slides-dir "./scratch/slide_candidates" -o "./transcripts/My_Talk/assets"
+```
+
+### 6. [`scripts/fix_gdocs_toc_links.py`](../scripts/fix_gdocs_toc_links.py) *(Optional Google Docs Exporter)*
+Uploads Markdown to Google Docs, optionally embeds local `./assets/*.png` images inline (`--embed-local-images`), resolves imported `headingId` targets, rebinds all `#slug` Table of Contents anchors to `#heading=h.xxx`, and writes local `.url` / `.webloc` shortcuts.
 
 | Flag | Default | Description |
 | :--- | :--- | :--- |
 | `doc_id` | `""` | Existing Google Doc ID (omit when creating a new Doc via `--import-md`) |
 | `--import-md` | `""` | Local Markdown file to create or update |
+| `--embed-local-images` | `false` | Stage unique placeholders, embed local `./assets/*.png` images inline via `gdocs`, clean placeholders in one batched `sed`, and verify image count |
 | `--title` | derived | Google Doc title when creating a new Doc |
 | `--tab` | `""` | Optional Google Docs tab ID (`t.0`) |
 | `--shortcut-dir` | `""` | Folder to write local `.url` / `.webloc` shortcut file(s) |
@@ -181,10 +193,10 @@ Uploads Markdown to Google Docs, resolves imported `headingId` targets, rebinds 
 | `--backend` | `auto` | `auto`, `gdocs` (Antigravity CLI), or `rest` (Google Drive v3 + Docs v1 REST APIs) |
 
 ```bash
-python3 scripts/fix_gdocs_toc_links.py --import-md "./out/Session_Thematic_Clean_Read_Transcript.md" --title "Session: Thematic Clean-Read" --shortcut-dir "./out" --shortcut-format auto
+python3 scripts/fix_gdocs_toc_links.py --import-md "./out/Session_Thematic_Clean_Read_Transcript.md" --embed-local-images --title "Session: Thematic Clean-Read" --shortcut-dir "./out" --shortcut-format auto
 ```
 
-### 6. [`scripts/build_changelog.py`](../scripts/build_changelog.py)
+### 7. [`scripts/build_changelog.py`](../scripts/build_changelog.py)
 Generates a turn-by-turn Markdown diff changelog comparing a rough `.md`, `.txt`, or legacy `.docx` draft against the verified `*_Perfect_Transcript.md`.
 
 ```bash
