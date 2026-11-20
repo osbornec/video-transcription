@@ -24,6 +24,8 @@ param(
 
     [switch]$ScreenShare,
 
+    [switch]$CaptureSlides,
+
     [int]$Width = 480,
 
     [int]$Fps = 1,
@@ -41,9 +43,10 @@ if (-not $InputPath -and -not $Url) {
     throw "Provide either -InputPath <file> or -Url <video_url>."
 }
 
-$EffectiveWidth = if ($ScreenShare) { [Math]::Max($Width, 960) } else { $Width }
-$EffectiveCrf = if ($ScreenShare) { [Math]::Min($Crf, 28) } else { $Crf }
-if ($ScreenShare) {
+$UseScreenShare = $ScreenShare -or $CaptureSlides
+$EffectiveWidth = if ($UseScreenShare) { [Math]::Max($Width, 960) } else { $Width }
+$EffectiveCrf = if ($UseScreenShare) { [Math]::Min($Crf, 28) } else { $Crf }
+if ($UseScreenShare) {
     if (-not $PSBoundParameters.ContainsKey("SegmentSeconds")) { $SegmentSeconds = 600 }
     if (-not $PSBoundParameters.ContainsKey("SegmentTriggerMinutes")) { $SegmentTriggerMinutes = 15 }
     if (-not $PSBoundParameters.ContainsKey("SegmentTriggerMB")) { $SegmentTriggerMB = 25 }
@@ -55,7 +58,9 @@ if ($Url -and -not $InputPath) {
     New-Item -ItemType Directory -Force -Path $dlDir | Out-Null
 
     $outTemplate = Join-Path $dlDir "%(title).80B_[%(id)s].%(ext)s"
-    $ytFmt = if ($EffectiveWidth -le 480) {
+    $ytFmt = if ($CaptureSlides -or $EffectiveWidth -gt 1280) {
+        "bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/bv*+ba[format_id!*=-drc]/b"
+    } elseif ($EffectiveWidth -le 480) {
         "bv*[height<=480]+ba[format_id!*=-drc]/b[height<=480]/bv*[height<=720]+ba[format_id!*=-drc]/b[height<=720]/bv*+ba[format_id!*=-drc]/b"
     } else {
         "bv*[height<=720]+ba[format_id!*=-drc]/b[height<=720]/bv*[height<=1080]+ba[format_id!*=-drc]/b[height<=1080]/bv*+ba[format_id!*=-drc]/b"

@@ -1,22 +1,25 @@
 # Sample Transcript Output Formats
 
-These side-by-side excerpts use a fictional engineering roundtable (*Cloud Infrastructure Architecture Q&A*, speakers **Maya Lin** and **David Park**) to illustrate how each deliverable edition transforms the same source recording.
+These side-by-side excerpts use a fictional engineering roundtable (*Cloud Infrastructure Architecture Q&A*, speakers **Maya Lin** and **David Park**) to illustrate how each deliverable edition transforms the same source recording inside a self-contained per-video package folder (`Cloud_Infrastructure_Architecture_QA/`).
 
 ---
 
 ## 1. Verbatim Perfect (`*_Perfect_Transcript.md`)
 
-Preserves every spoken word, natural false starts, self-corrections, audience reactions, platform edit splices, and honest VoIP packet-loss markers without fabricating missing speech.
+Preserves every spoken word, natural false starts, self-corrections, audience reactions, platform edit splices, and honest VoIP packet-loss markers without fabricating missing speech. When slides are captured, Verbatim Perfect stays text-pure and references figures with clickable relative links.
 
 ```markdown
 # Cloud Infrastructure Architecture Q&A: Verbatim Transcript
 
 - **Duration:** 48:15
 - **Speakers:** Maya Lin (Moderator), David Park (Principal Infrastructure Architect)
+- **Visual Assets:** Clickable links to curated slide PNGs in `./assets/index.md`
 
 ---
 
 **[11:32] David Park:** So the- the second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, right, and we told the on-call rotation, like, "Just watch tail latency for a week." And basically p99 dropped from forty-two milliseconds down to eleven. Before we shipped it- *[audio splice]* the storage controller firmware also needed a patch.
+
+*[11:48] [Slide: [Figure 01: Ephemeral NVMe p99 latency benchmark](./assets/01_11m48s_nvme_p99_latency_benchmark.png) - p99 42 ms -> 11 ms]*
 
 **[41:18] Remote Attendee:** Hi, can you hear me? My mic muted earlier *[chuckles]*, so for the cross-region replication lag, I noticed *[heavy packet loss / audio dropouts]* ...snapshot interval... *[garbled]* ...still seeing retries?
 ```
@@ -25,10 +28,13 @@ Preserves every spoken word, natural false starts, self-corrections, audience re
 
 ## 2. Companion Clean-Read (`*_Clean_Read_Transcript.md`)
 
-Removes spoken filler (*"like"*, *"basically"*, *"right"*), stutters, and abandoned clauses while keeping 100% of factual claims, numbers, speaker voice, and `[MM:SS]` timestamps. Useful for editorial review and quote sign-off.
+Removes spoken filler (*"like"*, *"basically"*, *"right"*), stutters, and abandoned clauses while keeping 100% of factual claims, numbers, speaker voice, and `[MM:SS]` timestamps. Embeds curated high-resolution slide PNGs inline with concise italic captions.
 
 ```markdown
 **[11:32] David Park:** The second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, and we asked the on-call rotation to watch tail latency for a week. P99 dropped from 42 milliseconds down to 11 milliseconds, after patching the storage controller firmware.
+
+![Figure 01: Ephemeral NVMe p99 tail latency benchmark dropping from 42 ms to 11 ms](./assets/01_11m48s_nvme_p99_latency_benchmark.png)
+*Figure 01 (`11:48`): Seven-day p99 tail latency across four stateful shard clusters after moving to ephemeral NVMe volumes.*
 
 **[41:18] Remote Attendee:** Hi, can you hear me? My mic muted earlier *[chuckles]*. For the cross-region replication lag, I noticed *[heavy packet loss / audio dropouts]* ...snapshot interval... *[garbled]* ...still seeing retries?
 ```
@@ -37,7 +43,7 @@ Removes spoken filler (*"like"*, *"basically"*, *"right"*), stutters, and abando
 
 ## 3. Thematic Clean-Read (`*_Thematic_Clean_Read_Transcript.md`)
 
-Organizes the Clean-Read text into chronological numbered themes paired with a GitHub-slug Table of Contents (rebound to native Google Docs `#heading=h.xxx` targets by `fix_gdocs_toc_links.py`) and one-sentence italic takeaways, giving both human readers and downstream agents clean, structured signal right away.
+Organizes the Clean-Read text into chronological numbered themes paired with a GitHub-slug Table of Contents (rebound to native Google Docs `#heading=h.xxx` targets by `fix_gdocs_toc_links.py`), one-sentence italic takeaways, inline slide embeds (also embedded into Google Docs via `--embed-local-images`), and an On-Slide Links and Resources section.
 
 ```markdown
 ## Table of Contents
@@ -52,6 +58,9 @@ Organizes the Clean-Read text into chronological numbered themes paired with a G
 *Takeaway: Moving four stateful shard clusters onto ephemeral NVMe volumes cut p99 tail latency from 42 ms to 11 ms over a one-week trial.*
 
 **[11:32] David Park:** The second experiment we ran was moving four stateful shard clusters onto ephemeral NVMe volumes, and we asked the on-call rotation to watch tail latency for a week. P99 dropped from 42 milliseconds down to 11 milliseconds, after patching the storage controller firmware.
+
+![Figure 01: Ephemeral NVMe p99 tail latency benchmark dropping from 42 ms to 11 ms](./assets/01_11m48s_nvme_p99_latency_benchmark.png)
+*Figure 01 (`11:48`): Seven-day p99 tail latency across four stateful shard clusters after moving to ephemeral NVMe volumes.*
 ```
 
 ---
@@ -76,4 +85,27 @@ Generated by `scripts/build_changelog.py` when auditing and resolving `[unclear]
 | Timestamp | Speaker | Original Draft (`initial_draft.md`) | Verified Transcript (`Architecture_QA_Perfect_Transcript.md`) |
 | :--- | :--- | :--- | :--- |
 | `[11:32]` | ~~Maya Lin~~ -> **David Park** | moving four stateful shards onto `[unclear]` volumes | moving four stateful shard clusters onto ephemeral NVMe volumes |
+```
+
+---
+
+## 5. Curated Slide Asset Catalog (`assets/index.md`)
+
+Generated by `scripts/capture_slides.py package` alongside the timestamped full-resolution PNGs inside `<Slug>/assets/`. Preserves URLs harvested from intentionally skipped slides (such as obscured tool UIs or fast demo clips) so no actionable references are lost:
+
+```markdown
+# Visual Asset Index - Cloud Infrastructure Architecture Q&A
+
+- **Retained Slides:** 2 of 9 total visual states
+- **Crop Filter:** `crop=1470:826:434:16`
+
+## Retained Reusable Slide Assets
+
+| Fig | Time | Asset File | Category | Summary |
+| :--- | :--- | :--- | :--- | :--- |
+| 01 | `11:48` | [01_11m48s_nvme_p99_latency_benchmark.png](./01_11m48s_nvme_p99_latency_benchmark.png) | Benchmark Chart | Four stateful shard clusters cutting p99 latency from 42 ms to 11 ms |
+
+## Harvested On-Slide URLs and Resources
+
+- NVMe Firmware Benchmark Harness (harvested from skipped demo slide at `14:22`): `https://github.com/example/nvme-bench`
 ```

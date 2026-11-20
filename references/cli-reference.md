@@ -28,6 +28,7 @@ All 6 core pipeline scripts (`prepare_compact_video.py`, `transcribe_media.py`, 
 | **`ffmpeg` + `ffprobe`** | Compaction, silence trim, and PCM `.wav` extraction | `brew install ffmpeg` | `winget install Gyan.FFmpeg` | `sudo apt install ffmpeg` |
 | **`yt-dlp`** *(optional)* | Stage 0 `--url` downloads | `brew install yt-dlp` | `winget install yt-dlp.yt-dlp` | `pip install -U yt-dlp` |
 | **`playwright` + Chromium** *(optional)* | Stage 0B live webinar capture (`attend_webinar.py`) | `pip install playwright && playwright install chromium` | `pip install playwright; playwright install chromium` | `pip install playwright && playwright install chromium` |
+| **`Pillow` + `numpy`** *(optional)* | Stage 4B pixel-exact PiP canvas crop detection (`capture_slides.py detect-crop`) | `pip install pillow numpy` | `pip install pillow numpy` | `pip install pillow numpy` |
 | **`GEMINI_API_KEY`** *(outside Antigravity)* | Joint video/audio Gemini 4 API pass | Export from [Google AI Studio](https://aistudio.google.com/) | `$env:GEMINI_API_KEY = "..."` | Export in shell profile |
 | **`gcloud` CLI** *(optional outside Antigravity)* | Exporting to Google Docs via REST | `brew install --cask google-cloud-sdk` | `winget install Google.CloudSDK` | `apt install google-cloud-cli` |
 | **`pypdf` / `python-pptx`** *(optional)* | Stage 3 text extraction from attached PDFs or `.pptx` decks | `pip install pypdf python-pptx` | `pip install pypdf python-pptx` | `pip install pypdf python-pptx` |
@@ -171,10 +172,28 @@ python3 scripts/extract_enhanced_clips.py -i "./recordings/panel_session.mp4" -o
 ### 5. [`scripts/capture_slides.py`](../scripts/capture_slides.py) *(Optional Stage 4B Slide Capture and HITL Curation)*
 Detects fixed conference broadcast PiP slide canvas crops (`detect-crop`), extracts lossless full-resolution slide PNGs from the original source video (`extract`), builds an interactive chronological HTML HITL curation page (`review-html`), and packages approved reusable assets with timestamped filenames and `assets/index.md` (`package`). See [`slide-curation-guide.md`](./slide-curation-guide.md).
 
+| Subcommand & Flag | Default | Description |
+| :--- | :--- | :--- |
+| `detect-crop -i/--input-path` | *(required)* | Full-resolution source video path |
+| `detect-crop -t/--timestamps` | *(required)* | One or more sample light-background slide timestamps (`HH:MM:SS`) |
+| `extract -i/--input-path` | *(required)* | Full-resolution source video path |
+| `extract -m/--manifest` | *(required)* | Slide manifest JSON covering all visual states |
+| `extract -o/--output-dir` | *(required)* | Output directory for candidate PNGs |
+| `extract --crop` | manifest crop | Optional `ffmpeg` crop filter (e.g. `crop=1470:826:434:16` or `none`) |
+| `review-html -m/--manifest` | *(required)* | Slide manifest JSON |
+| `review-html --slides-dir` | *(required)* | Relative or sibling folder containing extracted candidate PNGs |
+| `review-html -o/--output-html` | *(required)* | Output path for the interactive HTML curation page |
+| `review-html --before-sample` | `""` | Optional raw uncropped broadcast frame filename inside `--slides-dir` |
+| `review-html --after-sample` | `""` | Optional cropped slide PNG filename inside `--slides-dir` |
+| `package -m/--manifest` | *(required)* | Slide manifest JSON (including dropped-slide `urls` for harvesting) |
+| `package -d/--decisions` | `""` | Optional HITL decisions JSON exported from the review HTML |
+| `package --slides-dir` | *(required)* | Folder containing extracted candidate PNGs |
+| `package -o/--output-dir` | *(required)* | Target `<package_dir>/assets` directory |
+
 ```bash
 python3 scripts/capture_slides.py detect-crop -i "./recordings/talk.mp4" -t 00:00:48 00:02:06 00:13:38
 python3 scripts/capture_slides.py extract -i "./recordings/talk.mp4" -m "./scratch/manifest.json" -o "./scratch/slide_candidates" --crop "crop=1470:826:434:16"
-python3 scripts/capture_slides.py review-html -m "./scratch/manifest.json" --slides-dir "slide_candidates" -o "./scratch/slide_curation_review.html"
+python3 scripts/capture_slides.py review-html -m "./scratch/manifest.json" --slides-dir "slide_candidates" -o "./scratch/slide_curation_review.html" --before-sample "_raw_0048.png" --after-sample "01_chart.png"
 python3 scripts/capture_slides.py package -m "./scratch/manifest.json" -d "./scratch/hitl_slide_decisions.json" --slides-dir "./scratch/slide_candidates" -o "./transcripts/My_Talk/assets"
 ```
 
@@ -198,6 +217,13 @@ python3 scripts/fix_gdocs_toc_links.py --import-md "./out/Session_Thematic_Clean
 
 ### 7. [`scripts/build_changelog.py`](../scripts/build_changelog.py)
 Generates a turn-by-turn Markdown diff changelog comparing a rough `.md`, `.txt`, or legacy `.docx` draft against the verified `*_Perfect_Transcript.md`.
+
+| Flag | Default | Description |
+| :--- | :--- | :--- |
+| `--old` | *(required)* | Initial draft file (`.md`, `.txt`, or `.docx`) |
+| `--new` | *(required)* | Verified `*_Perfect_Transcript.md` path |
+| `--output` | *(required)* | Destination `Transcript_Corrections_Changelog.md` path |
+| `--tolerance` | `45` | Timestamp matching tolerance in seconds when aligning draft and verified turns |
 
 ```bash
 python3 scripts/build_changelog.py --old "./drafts/initial_draft.md" --new "./out/Session_Perfect_Transcript.md" --output "./out/Transcript_Corrections_Changelog.md"

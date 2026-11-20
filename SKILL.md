@@ -10,7 +10,7 @@ description: >-
 license: MIT
 metadata:
   author: osbornec
-  version: "1.3.0"
+  version: "1.3.1-rc.1"
 references:
   - cli-reference
   - editorial-style-guide
@@ -301,7 +301,7 @@ Outside Antigravity without Google Cloud OAuth configured, skip `fix_gdocs_toc_l
 - [ ] Stream duration verified against `ffprobe`, and provisional compact/deliverable filenames renamed if Stages 3 and 4 corrected metadata spellings.
 - [ ] Compact files stayed `<45 MB` and `<=25 min` per segment (`<25 MB` / `<=15 min` with `--screen-share`) without re-encoding speech to low bitrates or upscaling low-res video.
 - [ ] Recordings longer than 25 minutes (or 15 minutes with `--screen-share`) saved each `verbatim_chunk_XX.md` sequentially to disk before assembly.
-- [ ] Every flagged unclear span and mid-sentence segment boundary was checked via enhanced `.wav` clips; temporary `.wav` and chunk files were removed afterward.
+- [ ] Every flagged unclear span and mid-sentence segment boundary was checked via enhanced `.wav` clips; temporary `.wav`, chunk, candidate slide, and review HTML files in `<scratch_dir>` were removed afterward.
 - [ ] No unverified `[unclear]` guesses remain (true dropouts labeled honestly).
 - [ ] Final deliverables live in a self-contained per-video folder (`<Slug>/`) as Markdown (`.md`), optional curated `assets/` PNGs + `assets/index.md` (with dropped-slide URLs harvested), and optional Google Docs + `.url`/`.webloc` shortcuts, with zero `.docx` outputs created.
 - [ ] Any Google Doc with a Table of Contents (and optional `--embed-local-images`) passed `fix_gdocs_toc_links.py` binding with native `headingId` links and verified embedded images active.

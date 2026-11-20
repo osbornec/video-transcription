@@ -4,6 +4,16 @@ All notable changes to the `video-transcription` agent skill and toolkit will be
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1-rc.1] - 2026-11-20
+
+### Added
+- **PowerShell parity for slide capture (`scripts/prepare_compact_video.ps1`):** Added `-CaptureSlides` switch matching `prepare_compact_video.py --capture-slides` (`1080p` source download + `960px` `1 FPS` screen-share proxy).
+- **Complete CLI flag tables and optional dependencies (`references/cli-reference.md`):** Added full flag tables for all four `capture_slides.py` subcommands (`detect-crop`, `extract`, `review-html`, `package`), added `--tolerance` to `build_changelog.py`, and documented optional `Pillow` and `numpy` packages.
+- **Slide asset examples (`examples/sample_outputs.md`):** Updated synthetic excerpts to illustrate per-video `<Slug>/` folders, clickable slide links in Verbatim Perfect, inline slide PNG embeds in Clean-Read and Thematic Clean-Read, and an `assets/index.md` catalog with harvested URLs from skipped slides.
+
+### Changed
+- **Contributor and cleanup docs (`CONTRIBUTING.md`, `SKILL.md`):** Added `capture_slides.py` (with lazy optional `Pillow`/`numpy` imports) to the 6 core stdlib scripts list in `CONTRIBUTING.md`, and updated the `SKILL.md` Final Checklist to explicitly remove temporary `slide_candidates/` and `slide_curation_review.html` scratch files after packaging.
+
 ## [1.3.0] - 2026-11-20
 
 ### Added
